@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="color-scheme" content="dark" />
+    <meta name="description" content="Objects in Motion — An editorial one-page web presentation demonstrating how a webpage can replace a slide deck with continuous 3D kinetic geometry." />
+    <title>Objects in Motion — Kinetic Artifact Monograph</title>
+    <link rel="stylesheet" href="./src/styles/main.css" />
+  </head>
+  <body>
+    <!-- Accessible skip link for keyboard navigation -->
+    <a href="#opening" class="skip-link">Skip to main presentation</a>
+
+    <!-- Screen reader announcement live region -->
+    <div id="slide-announcer" class="sr-only" aria-live="polite" aria-atomic="true"></div>
+
+    <!-- Persistent editorial header -->
+    <div id="header-container"></div>
+
+    <!-- 3D kinetic object stage -->
+    <div id="stage-container" aria-hidden="true">
+      <div class="stage-reticle"></div>
+      <canvas id="object-canvas" width="800" height="800" role="img" aria-label="3D procedural kinetic armillary artifact"></canvas>
+    </div>
+
+    <!-- Full-viewport presentation slides -->
+    <main id="presentation-viewport" tabindex="-1" aria-label="Objects in Motion Presentation Slides">
+      <!-- Injected dynamically by main.ts -->
+    </main>
+
+    <script type="module" src="./src/main.ts"></script>
+  </body>
+</html>
