@@ -24,6 +24,7 @@ interface PartBuffer {
   colBuffer: WebGLBuffer;
   idxBuffer: WebGLBuffer;
   indexCount: number;
+  indexType?: number;
 }
 
 export class ObjectRenderer {
@@ -50,6 +51,8 @@ export class ObjectRenderer {
   private coreUpperBuf: PartBuffer | null = null;
   private coreLowerBuf: PartBuffer | null = null;
   private reticleBuf: PartBuffer | null = null;
+  private customMeshBuf: PartBuffer | null = null;
+  private customModelName: string = 'Kinetic Armillary';
 
   // Current interpolated state
   private currentPose: ObjectPose;
@@ -238,12 +241,19 @@ export class ObjectRenderer {
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, idxBuffer);
     gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, mesh.indices, gl.STATIC_DRAW);
 
+    const is32Bit = mesh.indices instanceof Uint32Array;
+    const indexType = is32Bit ? (gl.UNSIGNED_INT || 0x1405) : (gl.UNSIGNED_SHORT || 0x1403);
+    if (is32Bit && gl.getExtension) {
+      gl.getExtension('OES_element_index_uint');
+    }
+
     return {
       posBuffer,
       normBuffer,
       colBuffer,
       idxBuffer,
-      indexCount: mesh.indices.length
+      indexCount: mesh.indices.length,
+      indexType
     };
   }
 
@@ -407,6 +417,14 @@ export class ObjectRenderer {
     mat4RotateY(rootMatrix, rootMatrix, this.currentPose.rotY + this.idleAngle + this.dragRotY);
     mat4RotateZ(rootMatrix, rootMatrix, this.currentPose.rotZ);
 
+    // If custom 3D model is active, render it directly
+    if (this.customMeshBuf) {
+      const customMatrix = createMat4();
+      customMatrix.set(rootMatrix);
+      this.drawMesh(gl, this.customMeshBuf, customMatrix);
+      return;
+    }
+
     // 1. Render Outer Bezel
     // Explodes outwards along radius or tilts when in dial alignment
     const outerMatrix = createMat4();
@@ -462,7 +480,7 @@ export class ObjectRenderer {
     gl.vertexAttribPointer(this.aColLoc, 3, gl.FLOAT, false, 0, 0);
 
     gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, part.idxBuffer);
-    gl.drawElements(gl.TRIANGLES, part.indexCount, gl.UNSIGNED_SHORT, 0);
+    gl.drawElements(gl.TRIANGLES, part.indexCount, part.indexType ?? gl.UNSIGNED_SHORT, 0);
   }
 
   private renderFallback2D(): void {
@@ -526,6 +544,19 @@ export class ObjectRenderer {
 
   public renderFrame(): void {
     this.render();
+  }
+
+  public setCustomModel(mesh: MeshData | null, name: string = 'Kinetic Armillary'): void {
+    this.customModelName = name;
+    if (this.gl && mesh) {
+      this.customMeshBuf = this.createBuffer(this.gl, mesh);
+    } else {
+      this.customMeshBuf = null;
+    }
+  }
+
+  public getCustomModelName(): string {
+    return this.customModelName;
   }
 
   public destroy(): void {

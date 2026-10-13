@@ -145,4 +145,36 @@ describe('PresentationStudio Authoring Engine', () => {
     expect(currentPose.explodedDistance).toBe(formPreset.explodedDistance);
     expect(currentPose.scale).toBe(formPreset.scale);
   });
+
+  it('should support switching to Mobius Strip preset geometry', () => {
+    studio.setStudioMode(true);
+    const modelSelect = document.getElementById('sel-model-preset') as HTMLSelectElement;
+    expect(modelSelect).not.toBeNull();
+    const mobiusOption = Array.from(modelSelect.options).find(o => o.value === 'mobius');
+    expect(mobiusOption).toBeDefined();
+
+    modelSelect.value = 'mobius';
+    modelSelect.dispatchEvent(new Event('change'));
+
+    expect(renderer.getCustomModelName()).toBe('Möbius Strip');
+    expect(localStorage.getItem('objects_in_motion_model_type')).toBe('mobius');
+    const badge = document.getElementById('studio-model-badge');
+    expect(badge?.textContent).toBe('Möbius Strip');
+  });
+
+  it('should configure custom 3D model upload to accept both OBJ and GLB files', () => {
+    studio.setStudioMode(true);
+    const modelSelect = document.getElementById('sel-model-preset') as HTMLSelectElement;
+    const customOption = Array.from(modelSelect.options).find(o => o.value === 'custom');
+    expect(customOption?.textContent).toContain('.glb');
+
+    const fileInput = document.getElementById('inp-obj-file') as HTMLInputElement;
+    expect(fileInput).not.toBeNull();
+    expect(fileInput.accept).toContain('.glb');
+    expect(fileInput.accept).toContain('.obj');
+
+    const dropzone = document.getElementById('obj-dropzone');
+    expect(dropzone?.textContent).toContain('.glb');
+  });
 });
+

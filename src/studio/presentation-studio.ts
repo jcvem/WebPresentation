@@ -4,8 +4,13 @@ import { ObjectRenderer } from '../renderer/object-renderer';
 import { PresentationRecorder } from '../recorder/presentation-recorder';
 import { HeaderControls } from '../ui/header-controls';
 import { renderSlideMarkup } from '../ui/slide-view';
+import { parseOBJ, createIcosahedronPreset, createTorusKnotPreset, createMobiusStripPreset } from '../renderer/obj-loader';
+import { parseGLB } from '../renderer/glb-loader';
 
 const STORAGE_KEY = 'objects_in_motion_studio_slides_v1';
+const MODEL_TYPE_STORAGE_KEY = 'objects_in_motion_model_type';
+const CUSTOM_OBJ_TEXT_KEY = 'objects_in_motion_custom_obj_text';
+const CUSTOM_OBJ_NAME_KEY = 'objects_in_motion_custom_obj_name';
 
 export const POSE_PRESETS: Record<string, { name: string; pose: ObjectPose }> = {
   opening: {
@@ -123,6 +128,7 @@ export class PresentationStudio {
     this.slides = this.loadSlides();
     this.createStudioUI();
     this.createFileInput();
+    this.initModelSelection();
   }
 
   public getSlides(): SlideData[] {
@@ -366,7 +372,19 @@ export class PresentationStudio {
       this.slides = JSON.parse(JSON.stringify(SLIDES));
       if (typeof localStorage !== 'undefined') {
         localStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(MODEL_TYPE_STORAGE_KEY);
+        localStorage.removeItem(CUSTOM_OBJ_TEXT_KEY);
+        localStorage.removeItem(CUSTOM_OBJ_NAME_KEY);
       }
+      this.objectRenderer.setCustomModel(null, 'Kinetic Armillary');
+      const modelSelect = this.studioDrawer?.querySelector('#sel-model-preset') as HTMLSelectElement;
+      if (modelSelect) modelSelect.value = 'armillary';
+      const uploadContainer = this.studioDrawer?.querySelector('#obj-upload-container') as HTMLElement;
+      if (uploadContainer) uploadContainer.style.display = 'none';
+      const metaContainer = this.studioDrawer?.querySelector('#custom-model-meta') as HTMLElement;
+      if (metaContainer) metaContainer.style.display = 'none';
+      this.updateModelBadge('Kinetic Armillary');
+
       this.controller.currentIndex = 0;
       this.updateSlidesAndDOM(false);
       this.showToast('Reset to original template monograph.');
@@ -548,6 +566,54 @@ export class PresentationStudio {
             </div>
           </section>
 
+          <!-- Section: 3D Model & Custom OBJ Swapper -->
+          <section class="studio-section studio-model-section">
+            <div class="section-header-row">
+              <h4 class="studio-section-title">3D MODEL & GEOMETRY</h4>
+              <span class="model-active-badge" id="studio-model-badge">Kinetic Armillary</span>
+            </div>
+
+            <div class="studio-field">
+              <label for="sel-model-preset">GEOMETRY SELECTION</label>
+              <select id="sel-model-preset" class="studio-select">
+                <option value="armillary">Default: Kinetic Armillary Artifact</option>
+                <option value="mobius">Preset: Möbius Strip (Topological Ribbon)</option>
+                <option value="torusknot">Preset: Torus Knot Sculpture</option>
+                <option value="icosahedron">Preset: Icosahedron Crystal Prism</option>
+                <option value="custom">Custom 3D Model (.obj, .glb)...</option>
+              </select>
+            </div>
+
+            <!-- Custom OBJ / GLB Uploader Zone -->
+            <div class="obj-upload-container" id="obj-upload-container" style="display: none;">
+              <div class="obj-dropzone" id="obj-dropzone" tabindex="0" role="button" aria-label="Drop 3D OBJ or GLB file or click to select">
+                <div class="dropzone-icon">📐</div>
+                <div class="dropzone-text">
+                  <strong>Drop .obj or .glb file here</strong>
+                  <span>or click to browse local 3D assets</span>
+                </div>
+                <input type="file" id="inp-obj-file" accept=".obj,.glb,model/gltf-binary" style="display: none;" aria-label="Upload custom 3D OBJ or GLB file" />
+              </div>
+
+              <!-- Active Custom Model Metadata -->
+              <div class="custom-model-meta" id="custom-model-meta" style="display: none;">
+                <div class="meta-stat">
+                  <span class="meta-stat-label">MODEL</span>
+                  <span class="meta-stat-val" id="model-stat-name">custom.obj</span>
+                </div>
+                <div class="meta-stat">
+                  <span class="meta-stat-label">VERTICES</span>
+                  <span class="meta-stat-val" id="model-stat-verts">0</span>
+                </div>
+                <div class="meta-stat">
+                  <span class="meta-stat-label">TRIANGLES</span>
+                  <span class="meta-stat-val" id="model-stat-tris">0</span>
+                </div>
+                <button type="button" class="btn-studio-action btn-danger" id="btn-remove-custom-model" title="Revert to default model">Revert</button>
+              </div>
+            </div>
+          </section>
+
           <!-- Section: 3D Kinetic Object Pose & Motion -->
           <section class="studio-section">
             <div class="section-header-row">
@@ -707,6 +773,210 @@ export class PresentationStudio {
       this.updateSlidesAndDOM(true);
       this.renderMetaInputs(slide);
     });
+
+    // 3D Model Swapper events
+    const modelSelect = this.studioDrawer.querySelector('#sel-model-preset') as HTMLSelectElement;
+    const uploadContainer = this.studioDrawer.querySelector('#obj-upload-container') as HTMLElement;
+    const dropzone = this.studioDrawer.querySelector('#obj-dropzone') as HTMLElement;
+    const objFileInput = this.studioDrawer.querySelector('#inp-obj-file') as HTMLInputElement;
+    const metaContainer = this.studioDrawer.querySelector('#custom-model-meta') as HTMLElement;
+    const removeModelBtn = this.studioDrawer.querySelector('#btn-remove-custom-model');
+
+    const loadModelFile = async (file: File) => {
+      try {
+        const isGLB = file.name.toLowerCase().endsWith('.glb');
+        let res: { mesh: MeshData; vertexCount: number; triangleCount: number; name: string };
+        let cacheData: string | null = null;
+
+        if (isGLB) {
+          const buffer = await file.arrayBuffer();
+          res = parseGLB(buffer, file.name);
+
+          if (buffer.byteLength < 2000000) {
+            try {
+              const bytes = new Uint8Array(buffer);
+              let binary = '';
+              const chunkSize = 8192;
+              for (let i = 0; i < bytes.length; i += chunkSize) {
+                binary += String.fromCharCode.apply(null, Array.from(bytes.subarray(i, i + chunkSize)));
+              }
+              cacheData = 'data:model/gltf-binary;base64,' + btoa(binary);
+            } catch (e) {
+              console.warn('GLB could not be converted to base64 for localStorage, held in active memory.');
+            }
+          }
+        } else {
+          const text = await file.text();
+          res = parseOBJ(text, file.name);
+          if (text.length < 2000000) {
+            cacheData = text;
+          }
+        }
+
+        this.objectRenderer.setCustomModel(res.mesh, res.name);
+
+        if (cacheData) {
+          try {
+            localStorage.setItem(CUSTOM_OBJ_TEXT_KEY, cacheData);
+            localStorage.setItem(CUSTOM_OBJ_NAME_KEY, file.name);
+          } catch (e) {
+            console.warn('Model file too large for localStorage, held in active memory.');
+          }
+        }
+        localStorage.setItem(MODEL_TYPE_STORAGE_KEY, 'custom');
+        this.updateModelBadge(res.name);
+        this.updateModelStats(res.name, res.vertexCount, res.triangleCount);
+        this.showToast(`Loaded ${res.name} (${res.triangleCount.toLocaleString()} triangles)`);
+      } catch (err: any) {
+        alert(`Failed to load 3D model: ${err.message}`);
+      }
+    };
+
+    modelSelect?.addEventListener('change', () => {
+      const mode = modelSelect.value;
+      if (mode === 'armillary') {
+        this.objectRenderer.setCustomModel(null, 'Kinetic Armillary');
+        localStorage.setItem(MODEL_TYPE_STORAGE_KEY, 'armillary');
+        if (uploadContainer) uploadContainer.style.display = 'none';
+        this.updateModelBadge('Kinetic Armillary');
+        this.showToast('Swapped to Kinetic Armillary Artifact');
+      } else if (mode === 'mobius') {
+        this.objectRenderer.setCustomModel(createMobiusStripPreset(), 'Möbius Strip');
+        localStorage.setItem(MODEL_TYPE_STORAGE_KEY, 'mobius');
+        if (uploadContainer) uploadContainer.style.display = 'none';
+        this.updateModelBadge('Möbius Strip');
+        this.showToast('Swapped to Möbius Strip (Topological Ribbon)');
+      } else if (mode === 'icosahedron') {
+        this.objectRenderer.setCustomModel(createIcosahedronPreset(), 'Icosahedron Prism');
+        localStorage.setItem(MODEL_TYPE_STORAGE_KEY, 'icosahedron');
+        if (uploadContainer) uploadContainer.style.display = 'none';
+        this.updateModelBadge('Icosahedron Prism');
+        this.showToast('Swapped to Icosahedron Crystal Prism');
+      } else if (mode === 'torusknot') {
+        this.objectRenderer.setCustomModel(createTorusKnotPreset(), 'Torus Knot');
+        localStorage.setItem(MODEL_TYPE_STORAGE_KEY, 'torusknot');
+        if (uploadContainer) uploadContainer.style.display = 'none';
+        this.updateModelBadge('Torus Knot');
+        this.showToast('Swapped to Torus Knot Sculpture');
+      } else if (mode === 'custom') {
+        if (uploadContainer) uploadContainer.style.display = 'flex';
+      }
+    });
+
+    dropzone?.addEventListener('click', () => {
+      objFileInput?.click();
+    });
+
+    dropzone?.addEventListener('keydown', (e) => {
+      if (e.key === 'Enter' || e.key === ' ') {
+        e.preventDefault();
+        objFileInput?.click();
+      }
+    });
+
+    dropzone?.addEventListener('dragover', (e) => {
+      e.preventDefault();
+      dropzone.classList.add('drag-over');
+    });
+
+    dropzone?.addEventListener('dragleave', () => {
+      dropzone.classList.remove('drag-over');
+    });
+
+    dropzone?.addEventListener('drop', (e) => {
+      e.preventDefault();
+      dropzone.classList.remove('drag-over');
+      const file = e.dataTransfer?.files?.[0];
+      if (file) {
+        loadModelFile(file);
+      }
+    });
+
+    objFileInput?.addEventListener('change', () => {
+      const file = objFileInput.files?.[0];
+      if (file) {
+        loadModelFile(file);
+      }
+    });
+
+    removeModelBtn?.addEventListener('click', () => {
+      if (modelSelect) modelSelect.value = 'armillary';
+      this.objectRenderer.setCustomModel(null, 'Kinetic Armillary');
+      localStorage.setItem(MODEL_TYPE_STORAGE_KEY, 'armillary');
+      if (uploadContainer) uploadContainer.style.display = 'none';
+      if (metaContainer) metaContainer.style.display = 'none';
+      this.updateModelBadge('Kinetic Armillary');
+      this.showToast('Reverted to Kinetic Armillary');
+    });
+  }
+
+  private updateModelBadge(name: string): void {
+    const badge = this.studioDrawer?.querySelector('#studio-model-badge');
+    if (badge) badge.textContent = name;
+  }
+
+  private updateModelStats(name: string, verts: number, tris: number): void {
+    const metaContainer = this.studioDrawer?.querySelector('#custom-model-meta') as HTMLElement;
+    const nameEl = this.studioDrawer?.querySelector('#model-stat-name');
+    const vertsEl = this.studioDrawer?.querySelector('#model-stat-verts');
+    const trisEl = this.studioDrawer?.querySelector('#model-stat-tris');
+
+    if (nameEl) nameEl.textContent = name;
+    if (vertsEl) vertsEl.textContent = verts.toLocaleString();
+    if (trisEl) trisEl.textContent = tris.toLocaleString();
+    if (metaContainer) metaContainer.style.display = 'flex';
+  }
+
+  private initModelSelection(): void {
+    if (typeof localStorage === 'undefined') return;
+    try {
+      const savedType = localStorage.getItem(MODEL_TYPE_STORAGE_KEY) || 'armillary';
+      const modelSelect = this.studioDrawer?.querySelector('#sel-model-preset') as HTMLSelectElement;
+      const uploadContainer = this.studioDrawer?.querySelector('#obj-upload-container') as HTMLElement;
+
+      if (savedType === 'mobius') {
+        this.objectRenderer.setCustomModel(createMobiusStripPreset(), 'Möbius Strip');
+        if (modelSelect) modelSelect.value = 'mobius';
+        this.updateModelBadge('Möbius Strip');
+      } else if (savedType === 'icosahedron') {
+        this.objectRenderer.setCustomModel(createIcosahedronPreset(), 'Icosahedron Prism');
+        if (modelSelect) modelSelect.value = 'icosahedron';
+        this.updateModelBadge('Icosahedron Prism');
+      } else if (savedType === 'torusknot') {
+        this.objectRenderer.setCustomModel(createTorusKnotPreset(), 'Torus Knot');
+        if (modelSelect) modelSelect.value = 'torusknot';
+        this.updateModelBadge('Torus Knot');
+      } else if (savedType === 'custom') {
+        const cachedData = localStorage.getItem(CUSTOM_OBJ_TEXT_KEY);
+        const cachedName = localStorage.getItem(CUSTOM_OBJ_NAME_KEY) || 'custom-model';
+        if (cachedData) {
+          try {
+            let res: { mesh: MeshData; vertexCount: number; triangleCount: number; name: string };
+            if (cachedData.startsWith('data:model/gltf-binary;base64,') || cachedName.toLowerCase().endsWith('.glb')) {
+              const base64 = cachedData.replace(/^data:model\/gltf-binary;base64,/, '');
+              const binaryString = atob(base64);
+              const bytes = new Uint8Array(binaryString.length);
+              for (let i = 0; i < binaryString.length; i++) {
+                bytes[i] = binaryString.charCodeAt(i);
+              }
+              res = parseGLB(bytes.buffer, cachedName);
+            } else {
+              res = parseOBJ(cachedData, cachedName);
+            }
+
+            this.objectRenderer.setCustomModel(res.mesh, res.name);
+            if (modelSelect) modelSelect.value = 'custom';
+            if (uploadContainer) uploadContainer.style.display = 'flex';
+            this.updateModelBadge(res.name);
+            this.updateModelStats(res.name, res.vertexCount, res.triangleCount);
+          } catch (err) {
+            console.warn('Failed restoring custom 3D model:', err);
+          }
+        }
+      }
+    } catch (e) {
+      console.warn('Could not restore 3D model selection from localStorage:', e);
+    }
   }
 
   private bindSlider(sliderId: string, valueId: string, poseKey: keyof ObjectPose): void {

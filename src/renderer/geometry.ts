@@ -4,7 +4,7 @@ export interface MeshData {
   positions: Float32Array;
   normals: Float32Array;
   colors: Float32Array; // RGB 0..1 per vertex
-  indices: Uint16Array;
+  indices: Uint16Array | Uint32Array;
 }
 
 /**
