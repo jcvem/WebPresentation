@@ -132,8 +132,8 @@ export class RecordingPanel {
     this.statusBar = document.getElementById('recording-status-bar') || wrapper.querySelector('#recording-status-bar');
     this.statusLabel = document.getElementById('rec-status-label') || wrapper.querySelector('#rec-status-label');
     this.timeElapsedEl = document.getElementById('rec-time-elapsed') || wrapper.querySelector('#rec-time-elapsed');
-    this.stopBtn = document.getElementById('btn-record-stop') || wrapper.querySelector('#btn-record-stop');
-    this.cancelBtn = document.getElementById('btn-record-cancel') || wrapper.querySelector('#btn-record-cancel');
+    this.stopBtn = (document.getElementById('btn-record-stop') || wrapper.querySelector('#btn-record-stop')) as HTMLButtonElement | null;
+    this.cancelBtn = (document.getElementById('btn-record-cancel') || wrapper.querySelector('#btn-record-cancel')) as HTMLButtonElement | null;
 
     this.completeDialog = wrapper.querySelector('#record-complete-dialog');
     this.videoPreview = wrapper.querySelector('#record-video-preview');

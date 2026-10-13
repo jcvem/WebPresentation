@@ -6,6 +6,7 @@ import { HeaderControls } from '../ui/header-controls';
 import { renderSlideMarkup } from '../ui/slide-view';
 import { parseOBJ, createIcosahedronPreset, createTorusKnotPreset, createMobiusStripPreset } from '../renderer/obj-loader';
 import { parseGLB } from '../renderer/glb-loader';
+import { MeshData } from '../renderer/geometry';
 
 const STORAGE_KEY = 'objects_in_motion_studio_slides_v1';
 const MODEL_TYPE_STORAGE_KEY = 'objects_in_motion_model_type';
