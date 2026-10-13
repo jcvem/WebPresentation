@@ -4,6 +4,8 @@ import { renderSlideMarkup } from './ui/slide-view';
 import { ObjectRenderer } from './renderer/object-renderer';
 import { PresentationController } from './controller/presentation-controller';
 import { HeaderControls } from './ui/header-controls';
+import { PresentationRecorder } from './recorder/presentation-recorder';
+import { RecordingPanel } from './recorder/recording-panel';
 
 function initApp(): void {
   const viewport = document.getElementById('presentation-viewport') as HTMLElement;
@@ -60,13 +62,29 @@ function initApp(): void {
     headerControls.updateSnapState();
   });
 
-  // 6. Start 3D animation loop
+  // 6. Initialize Presentation Recorder & Panel
+  const recorder = new PresentationRecorder({
+    slides: SLIDES,
+    controller,
+    objectRenderer
+  });
+
+  const recordingPanel = new RecordingPanel(document.body, recorder);
+  const recBtn = headerControls.getRecordButton();
+  const durSelect = headerControls.getDurationSelect();
+  if (recBtn && durSelect) {
+    recordingPanel.attachHeaderControls(recBtn, durSelect);
+  }
+
+  // 7. Start 3D animation loop
   objectRenderer.start();
 
-  // Expose controller on window for deterministic testing and automation
+  // Expose controller and recorder on window for deterministic testing and automation
   if (typeof window !== 'undefined') {
     (window as unknown as { __presentationController: PresentationController }).__presentationController = controller;
     (window as unknown as { __objectRenderer: ObjectRenderer }).__objectRenderer = objectRenderer;
+    (window as unknown as { __presentationRecorder: PresentationRecorder }).__presentationRecorder = recorder;
+    (window as unknown as { __recordingPanel: RecordingPanel }).__recordingPanel = recordingPanel;
   }
 }
 

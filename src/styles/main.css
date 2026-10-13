@@ -1,4 +1,5 @@
 @import './tokens.css';
+@import './recorder.css';
 
 /* 1. Global Reset & Box Sizing */
 *, *::before, *::after {

@@ -86,7 +86,8 @@ export class ObjectRenderer {
     const gl = this.canvas.getContext('webgl', {
       antialias: true,
       alpha: true,
-      powerPreference: 'high-performance'
+      powerPreference: 'high-performance',
+      preserveDrawingBuffer: true
     });
 
     if (!gl) {
@@ -517,6 +518,14 @@ export class ObjectRenderer {
     ctx.stroke();
 
     ctx.restore();
+  }
+
+  public getCanvas(): HTMLCanvasElement {
+    return this.canvas;
+  }
+
+  public renderFrame(): void {
+    this.render();
   }
 
   public destroy(): void {

@@ -14,6 +14,8 @@ export class HeaderControls {
   private motionBtn: HTMLButtonElement | null = null;
   private keysBtn: HTMLButtonElement | null = null;
   private keysModal: HTMLElement | null = null;
+  private recordBtn: HTMLButtonElement | null = null;
+  private durationSelect: HTMLSelectElement | null = null;
 
   constructor(container: HTMLElement, controller: PresentationController) {
     this.container = container;
@@ -53,6 +55,17 @@ export class HeaderControls {
             </button>
             <button type="button" class="btn-ctrl btn-keys" id="btn-hdr-keys" title="View keyboard shortcuts" aria-label="Keyboard shortcuts" aria-haspopup="dialog">
               KEYS
+            </button>
+            <select id="record-duration-select" class="select-duration" aria-label="Slide duration for recording" title="Slide duration">
+              <option value="3500">3.5s</option>
+              <option value="5000">5.0s</option>
+              <option value="2000">2.0s</option>
+            </select>
+            <button type="button" class="btn-ctrl btn-record" id="btn-hdr-record" aria-label="Record presentation" title="Record presentation to short video">
+              <svg class="rec-icon" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
+                <circle cx="5" cy="5" r="4" fill="currentColor"/>
+              </svg>
+              <span>Record presentation</span>
             </button>
 
             <div class="nav-arrows" role="group" aria-label="Slide navigation">
@@ -105,6 +118,8 @@ export class HeaderControls {
     this.motionBtn = this.container.querySelector('#btn-hdr-motion');
     this.keysBtn = this.container.querySelector('#btn-hdr-keys');
     this.keysModal = this.container.querySelector('#keys-dialog');
+    this.recordBtn = this.container.querySelector('#btn-hdr-record');
+    this.durationSelect = this.container.querySelector('#record-duration-select');
   }
 
   private bindEvents(): void {
@@ -185,5 +200,13 @@ export class HeaderControls {
       this.motionBtn.setAttribute('aria-pressed', isReduced.toString());
       this.motionBtn.classList.toggle('active', isReduced);
     }
+  }
+
+  public getRecordButton(): HTMLButtonElement | null {
+    return this.recordBtn;
+  }
+
+  public getDurationSelect(): HTMLSelectElement | null {
+    return this.durationSelect;
   }
 }
