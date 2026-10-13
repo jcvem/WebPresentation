@@ -143,6 +143,23 @@ export class PresentationController {
     }
   }
 
+  public updateSlides(newSlides: SlideData[], newSlideElements: HTMLElement[]): void {
+    if (this.observer) {
+      this.slideElements.forEach((el) => this.observer?.unobserve(el));
+    }
+
+    this.slides = newSlides;
+    this.slideElements = newSlideElements;
+
+    if (this.observer) {
+      this.slideElements.forEach((el) => this.observer?.observe(el));
+    }
+
+    if (this.currentIndex >= this.slides.length) {
+      this.currentIndex = Math.max(0, this.slides.length - 1);
+    }
+  }
+
   public restart(): void {
     this.goTo(0);
   }

@@ -1,11 +1,14 @@
 import './styles/main.css';
-import { SLIDES } from './slides/slide-data';
+import { SLIDES, SlideData } from './slides/slide-data';
 import { renderSlideMarkup } from './ui/slide-view';
 import { ObjectRenderer } from './renderer/object-renderer';
 import { PresentationController } from './controller/presentation-controller';
 import { HeaderControls } from './ui/header-controls';
 import { PresentationRecorder } from './recorder/presentation-recorder';
 import { RecordingPanel } from './recorder/recording-panel';
+import { FontManager } from './fonts/font-manager';
+import { FontSelectorModal } from './ui/font-selector-modal';
+import { PresentationStudio } from './studio/presentation-studio';
 
 function initApp(): void {
   const viewport = document.getElementById('presentation-viewport') as HTMLElement;
@@ -18,24 +21,46 @@ function initApp(): void {
     return;
   }
 
-  // 1. Mount all slide sections
-  viewport.innerHTML = SLIDES.map((slide) => renderSlideMarkup(slide, SLIDES.length)).join('');
+  // 1. Font Manager & Google Fonts Modal
+  const fontManager = new FontManager();
+  const fontModal = new FontSelectorModal(document.body, fontManager);
+
+  // 2. Load stored custom slides or fallback to default monograph slides
+  let initialSlides: SlideData[] = SLIDES;
+  try {
+    const stored = typeof localStorage !== 'undefined' ? localStorage.getItem('objects_in_motion_studio_slides_v1') : null;
+    if (stored) {
+      const parsed = JSON.parse(stored);
+      if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].id) {
+        initialSlides = parsed;
+      }
+    }
+  } catch (e) {
+    console.warn('Could not parse stored slides, falling back to defaults:', e);
+  }
+
+  // 3. Mount all slide sections
+  viewport.innerHTML = initialSlides.map((slide) => renderSlideMarkup(slide, initialSlides.length)).join('');
   const slideElements = Array.from(viewport.querySelectorAll<HTMLElement>('.slide'));
 
-  // 2. Initialize 3D Subject Renderer
-  const objectRenderer = new ObjectRenderer(canvas, SLIDES[0].pose);
+  // 4. Initialize 3D Subject Renderer
+  const objectRenderer = new ObjectRenderer(canvas, initialSlides[0].pose);
 
-  // 3. Initialize Presentation Controller
+  // 5. Initialize Presentation Controller & Header Controls
   let headerControls: HeaderControls;
+  let studio: PresentationStudio;
 
   const controller = new PresentationController({
-    slides: SLIDES,
+    slides: initialSlides,
     container: viewport,
     slideElements,
     announcerElement: announcer,
     onSlideChange: (slide, index) => {
       headerControls?.update(slide, index);
       objectRenderer.setPose(slide.pose);
+      if (studio?.isStudioMode) {
+        studio.syncInspectorForm(index);
+      }
     },
     onMotionChange: (isReduced) => {
       objectRenderer.setReducedMotion(isReduced);
@@ -46,27 +71,42 @@ function initApp(): void {
     }
   });
 
-  // 4. Initialize Header Controls
+  // 6. Initialize Header Controls
   headerControls = new HeaderControls(headerContainer, controller);
 
-  // 5. Wire action buttons inside Slide 6 (Closing)
-  const restartBtn = document.getElementById('btn-restart-action');
-  const freeScrollBtn = document.getElementById('btn-free-scroll-action');
+  // 7. Wire action buttons inside closing slide
+  const wireClosingActions = () => {
+    const restartBtn = document.getElementById('btn-restart-action');
+    const freeScrollBtn = document.getElementById('btn-free-scroll-action');
 
-  restartBtn?.addEventListener('click', () => {
-    controller.restart();
-  });
+    restartBtn?.addEventListener('click', () => {
+      controller.restart();
+    });
 
-  freeScrollBtn?.addEventListener('click', () => {
-    controller.toggleSnap();
-    headerControls.updateSnapState();
-  });
+    freeScrollBtn?.addEventListener('click', () => {
+      controller.toggleSnap();
+      headerControls.updateSnapState();
+    });
+  };
+  wireClosingActions();
 
-  // 6. Initialize Presentation Recorder & Panel
+  // 8. Initialize Presentation Recorder & Panel
   const recorder = new PresentationRecorder({
-    slides: SLIDES,
+    slides: initialSlides,
     controller,
     objectRenderer
+  });
+
+  // Sync active typography with video composition recorder
+  const currentFonts = fontManager.getSelection();
+  recorder.setFonts(
+    currentFonts.displayFont,
+    currentFonts.bodyFont,
+    currentFonts.displayWeight,
+    currentFonts.bodyWeight
+  );
+  fontManager.onFontChange((sel) => {
+    recorder.setFonts(sel.displayFont, sel.bodyFont, sel.displayWeight, sel.bodyWeight);
   });
 
   const recordingPanel = new RecordingPanel(document.body, recorder);
@@ -76,15 +116,36 @@ function initApp(): void {
     recordingPanel.attachHeaderControls(recBtn, durSelect);
   }
 
-  // 7. Start 3D animation loop
+  // 9. Initialize Presentation Authoring Studio
+  studio = new PresentationStudio({
+    viewport,
+    controller,
+    objectRenderer,
+    recorder,
+    headerControls
+  });
+
+  // Wire Header buttons to open Google Fonts modal and Authoring Studio
+  headerControls.setOnFontsClick(() => {
+    fontModal.open();
+  });
+
+  headerControls.setOnStudioClick(() => {
+    studio.toggleStudioMode();
+  });
+
+  // 10. Start 3D animation loop
   objectRenderer.start();
 
-  // Expose controller and recorder on window for deterministic testing and automation
+  // Expose controller, recorder, studio, and fontManager on window for deterministic testing and automation
   if (typeof window !== 'undefined') {
     (window as unknown as { __presentationController: PresentationController }).__presentationController = controller;
     (window as unknown as { __objectRenderer: ObjectRenderer }).__objectRenderer = objectRenderer;
     (window as unknown as { __presentationRecorder: PresentationRecorder }).__presentationRecorder = recorder;
     (window as unknown as { __recordingPanel: RecordingPanel }).__recordingPanel = recordingPanel;
+    (window as unknown as { __presentationStudio: PresentationStudio }).__presentationStudio = studio;
+    (window as unknown as { __fontManager: FontManager }).__fontManager = fontManager;
+    (window as unknown as { __fontModal: FontSelectorModal }).__fontModal = fontModal;
   }
 }
 

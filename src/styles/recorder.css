@@ -49,8 +49,8 @@
   cursor: not-allowed;
 }
 
-/* 2. Floating Recording HUD / Status Rail */
-.recording-status-bar {
+/* 2. Floating Recording HUD / Status Rail (Standalone fallback when not inside CONTROL menu) */
+.recording-status-bar:not(.control-menu-popover *) {
   position: fixed;
   top: calc(var(--header-height) + var(--space-2));
   right: var(--space-6);
@@ -254,7 +254,7 @@ html.reduced-motion .btn-record.recording .rec-icon {
 
 /* 5. Responsive Adjustments */
 @media (max-width: 768px) {
-  .recording-status-bar {
+  .recording-status-bar:not(.control-menu-popover *) {
     right: var(--space-3);
     top: calc(var(--header-height) + var(--space-1));
   }
@@ -278,7 +278,7 @@ html.reduced-motion .btn-record.recording .rec-icon {
     display: none;
   }
 
-  .recording-status-bar {
+  .recording-status-bar:not(.control-menu-popover *) {
     left: var(--space-2);
     right: var(--space-2);
     top: calc(var(--header-height) + var(--space-1));

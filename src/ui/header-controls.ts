@@ -16,6 +16,12 @@ export class HeaderControls {
   private keysModal: HTMLElement | null = null;
   private recordBtn: HTMLButtonElement | null = null;
   private durationSelect: HTMLSelectElement | null = null;
+  private fontBtn: HTMLButtonElement | null = null;
+  private studioBtn: HTMLButtonElement | null = null;
+  private controlToggleBtn: HTMLButtonElement | null = null;
+  private controlPopoverEl: HTMLElement | null = null;
+  private onFontsClick?: () => void;
+  private onStudioClick?: () => void;
 
   constructor(container: HTMLElement, controller: PresentationController) {
     this.container = container;
@@ -32,8 +38,8 @@ export class HeaderControls {
         <div class="header-left">
           <div class="brand-monogram">
             <span class="brand-dot"></span>
-            <span class="brand-name">OBJECTS IN MOTION</span>
-            <span class="brand-sub">EST. 2026 / STUDY 04</span>
+            <span class="brand-name">SUBJECTS IN MOTION</span>
+            <span class="brand-sub">by / VEM Studio</span>
           </div>
         </div>
 
@@ -47,27 +53,109 @@ export class HeaderControls {
 
         <div class="header-right">
           <nav class="nav-controls" aria-label="Presentation controls">
-            <button type="button" class="btn-ctrl btn-snap" id="btn-hdr-snap" title="Toggle scroll snap" aria-pressed="true" aria-label="Toggle scroll snapping">
-              SNAP
-            </button>
-            <button type="button" class="btn-ctrl btn-motion" id="btn-hdr-motion" title="Toggle reduced motion" aria-pressed="false" aria-label="Toggle reduced motion">
-              MOTION
-            </button>
-            <button type="button" class="btn-ctrl btn-keys" id="btn-hdr-keys" title="View keyboard shortcuts" aria-label="Keyboard shortcuts" aria-haspopup="dialog">
-              KEYS
-            </button>
-            <select id="record-duration-select" class="select-duration" aria-label="Slide duration for recording" title="Slide duration">
-              <option value="3500">3.5s</option>
-              <option value="5000">5.0s</option>
-              <option value="2000">2.0s</option>
-            </select>
-            <button type="button" class="btn-ctrl btn-record" id="btn-hdr-record" aria-label="Record presentation" title="Record presentation to short video">
-              <svg class="rec-icon" width="10" height="10" viewBox="0 0 10 10" aria-hidden="true">
-                <circle cx="5" cy="5" r="4" fill="currentColor"/>
-              </svg>
-              <span>Record presentation</span>
-            </button>
+            <!-- Consolidated CONTROL dropdown menu -->
+            <div class="control-menu-container">
+              <button 
+                type="button" 
+                class="btn-ctrl btn-control-toggle" 
+                id="btn-hdr-control" 
+                title="Presentation controls and options" 
+                aria-haspopup="menu" 
+                aria-expanded="false" 
+                aria-label="Toggle presentation controls menu">
+                <svg class="ctrl-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
+                  <path d="M12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"/>
+                  <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/>
+                </svg>
+                <span class="ctrl-rec-pulse" id="ctrl-rec-pulse" style="display:none;" aria-hidden="true"></span>
+                <span>CONTROL</span>
+                <svg class="ctrl-chevron" width="8" height="8" viewBox="0 0 8 8" aria-hidden="true">
+                  <path d="M1.5 2.5L4 5L6.5 2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
+                </svg>
+              </button>
 
+              <div class="control-menu-popover" id="control-menu-popover" role="menu" aria-label="Controls and settings menu">
+                <div class="menu-group">
+                  <div class="menu-group-header">DESIGN & AUTHORING</div>
+                  <button type="button" class="ctrl-menu-item btn-studio" id="btn-hdr-studio" role="menuitem" aria-pressed="false" title="Open Presentation Authoring Studio">
+                    <span class="ctrl-menu-icon">✏️</span>
+                    <span class="ctrl-menu-title">STUDIO MAKER</span>
+                    <span class="ctrl-menu-badge" id="menu-studio-badge">OFF</span>
+                  </button>
+                  <button type="button" class="ctrl-menu-item btn-fonts" id="btn-hdr-fonts" role="menuitem" title="Select Google Fonts typography">
+                    <span class="ctrl-menu-icon">Aa</span>
+                    <span class="ctrl-menu-title">FONTS PALETTE</span>
+                    <span class="ctrl-menu-hint">Google Fonts</span>
+                  </button>
+                </div>
+
+                <div class="menu-group">
+                  <div class="menu-group-header">NAVIGATION & MOTION</div>
+                  <button type="button" class="ctrl-menu-item btn-snap" id="btn-hdr-snap" role="menuitem" title="Toggle scroll snap" aria-pressed="true">
+                    <span class="ctrl-menu-icon">⚡</span>
+                    <span class="ctrl-menu-title">SNAP: ON</span>
+                    <span class="ctrl-menu-hint">Page Snapping</span>
+                  </button>
+                  <button type="button" class="ctrl-menu-item btn-motion" id="btn-hdr-motion" role="menuitem" title="Toggle reduced motion" aria-pressed="false">
+                    <span class="ctrl-menu-icon">〰️</span>
+                    <span class="ctrl-menu-title">MOTION: FLUID</span>
+                    <span class="ctrl-menu-hint">WebGL Kinetic</span>
+                  </button>
+                </div>
+
+                <div class="menu-group menu-group-recording">
+                  <div class="menu-group-header">RECORDING</div>
+                  <button type="button" class="ctrl-menu-item btn-record" id="btn-hdr-record" role="menuitem" aria-label="Record presentation" title="Record presentation to short video">
+                    <span class="ctrl-menu-icon rec-icon">
+                      <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="4" fill="currentColor"/></svg>
+                    </span>
+                    <span class="ctrl-menu-title" id="rec-btn-label">Record presentation</span>
+                  </button>
+                  <div class="menu-row-duration">
+                    <span class="menu-duration-label">Slide Pace:</span>
+                    <select id="record-duration-select" class="select-duration" aria-label="Slide duration for recording" title="Slide duration">
+                      <option value="3500">3.5s (Default)</option>
+                      <option value="5000">5.0s (Paced)</option>
+                      <option value="2000">2.0s (Fast)</option>
+                    </select>
+                  </div>
+                  <!-- Embedded Recording Status HUD away into CONTROL -->
+                  <div class="recording-status-bar" id="recording-status-bar" role="status" aria-live="polite" hidden>
+                    <div class="recording-status-indicator">
+                      <span class="rec-pulse-dot" aria-hidden="true"></span>
+                      <span class="rec-status-label" id="rec-status-label">Recording 01 / 06</span>
+                    </div>
+                    <div class="rec-time-meter">
+                      <span class="rec-time-elapsed" id="rec-time-elapsed">00:00</span>
+                    </div>
+                    <div class="rec-status-actions">
+                      <button type="button" class="rec-status-btn rec-btn-stop" id="btn-record-stop" aria-label="Stop presentation recording">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
+                          <rect x="4" y="4" width="16" height="16" rx="1" />
+                        </svg>
+                        <span>Stop</span>
+                      </button>
+                      <button type="button" class="rec-status-btn rec-btn-cancel" id="btn-record-cancel" aria-label="Cancel presentation recording">
+                        <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" aria-hidden="true">
+                          <line x1="18" y1="6" x2="6" y2="18"></line>
+                          <line x1="6" y1="6" x2="18" y2="18"></line>
+                        </svg>
+                        <span>Cancel</span>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="menu-group menu-group-footer">
+                  <button type="button" class="ctrl-menu-item btn-keys" id="btn-hdr-keys" role="menuitem" title="View keyboard shortcuts" aria-haspopup="dialog">
+                    <span class="ctrl-menu-icon">⌨️</span>
+                    <span class="ctrl-menu-title">KEYBOARD SHORTCUTS</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Slide Navigation Arrows -->
             <div class="nav-arrows" role="group" aria-label="Slide navigation">
               <button type="button" class="btn-nav btn-prev" id="btn-hdr-prev" aria-label="Previous slide" title="Previous slide (ArrowUp / PageUp)">
                 <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" aria-hidden="true">
@@ -120,11 +208,42 @@ export class HeaderControls {
     this.keysModal = this.container.querySelector('#keys-dialog');
     this.recordBtn = this.container.querySelector('#btn-hdr-record');
     this.durationSelect = this.container.querySelector('#record-duration-select');
+    this.fontBtn = this.container.querySelector('#btn-hdr-fonts');
+    this.studioBtn = this.container.querySelector('#btn-hdr-studio');
+    this.controlToggleBtn = this.container.querySelector('#btn-hdr-control');
+    this.controlPopoverEl = this.container.querySelector('#control-menu-popover');
   }
 
   private bindEvents(): void {
     this.prevBtn?.addEventListener('click', () => this.controller.prev());
     this.nextBtn?.addEventListener('click', () => this.controller.next());
+
+    const toggleControlMenu = (force?: boolean) => {
+      const willOpen = force !== undefined ? force : !this.controlPopoverEl?.classList.contains('open');
+      this.controlPopoverEl?.classList.toggle('open', willOpen);
+      this.controlToggleBtn?.setAttribute('aria-expanded', willOpen ? 'true' : 'false');
+      this.controlToggleBtn?.classList.toggle('active', willOpen);
+    };
+
+    this.controlToggleBtn?.addEventListener('click', (e) => {
+      e.stopPropagation();
+      toggleControlMenu();
+    });
+
+    document.addEventListener('click', (e) => {
+      if (this.controlPopoverEl?.classList.contains('open')) {
+        const container = this.container.querySelector('.control-menu-container');
+        if (container && !container.contains(e.target as Node)) {
+          toggleControlMenu(false);
+        }
+      }
+    });
+
+    document.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape' && this.controlPopoverEl?.classList.contains('open')) {
+        toggleControlMenu(false);
+      }
+    });
 
     this.snapBtn?.addEventListener('click', () => {
       this.controller.toggleSnap();
@@ -136,7 +255,18 @@ export class HeaderControls {
       this.updateMotionState();
     });
 
+    this.fontBtn?.addEventListener('click', () => {
+      toggleControlMenu(false);
+      this.onFontsClick?.();
+    });
+
+    this.studioBtn?.addEventListener('click', () => {
+      toggleControlMenu(false);
+      this.onStudioClick?.();
+    });
+
     this.keysBtn?.addEventListener('click', () => {
+      toggleControlMenu(false);
       (this.keysModal as HTMLDialogElement)?.showModal?.();
     });
 
@@ -208,5 +338,21 @@ export class HeaderControls {
 
   public getDurationSelect(): HTMLSelectElement | null {
     return this.durationSelect;
+  }
+
+  public setOnFontsClick(cb: () => void): void {
+    this.onFontsClick = cb;
+  }
+
+  public setOnStudioClick(cb: () => void): void {
+    this.onStudioClick = cb;
+  }
+
+  public updateStudioState(isActive: boolean): void {
+    if (this.studioBtn) {
+      this.studioBtn.textContent = isActive ? 'STUDIO: ON' : 'STUDIO';
+      this.studioBtn.setAttribute('aria-pressed', isActive.toString());
+      this.studioBtn.classList.toggle('active', isActive);
+    }
   }
 }

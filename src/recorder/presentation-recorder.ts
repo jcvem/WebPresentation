@@ -36,6 +36,12 @@ export class PresentationRecorder {
   public objectRenderer: ObjectRenderer;
   public settings: RecordingSettings;
   public status: RecordingStatus = 'idle';
+  private fonts: { displayFont?: string; bodyFont?: string; displayWeight?: number; bodyWeight?: number } = {
+    displayFont: 'Syne',
+    bodyFont: 'Space Grotesk',
+    displayWeight: 700,
+    bodyWeight: 400
+  };
 
   private currentResult: RecordingResult | null = null;
   private listeners: Set<RecordingLifecycleListener> = new Set();
@@ -63,6 +69,22 @@ export class PresentationRecorder {
 
     if (!isRecordingSupported()) {
       this.status = 'unsupported';
+    }
+  }
+
+  public updateSlides(newSlides: SlideData[]): void {
+    this.slides = newSlides;
+  }
+
+  public setFonts(
+    displayFont: string,
+    bodyFont: string,
+    displayWeight: number = 700,
+    bodyWeight: number = 400
+  ): void {
+    this.fonts = { displayFont, bodyFont, displayWeight, bodyWeight };
+    if (this.compositionRenderer) {
+      this.compositionRenderer.setFonts(displayFont, bodyFont, displayWeight, bodyWeight);
     }
   }
 
@@ -134,7 +156,7 @@ export class PresentationRecorder {
 
     // 2. Setup Composition Canvas & Stream
     try {
-      this.compositionRenderer = new CompositionRenderer(this.settings);
+      this.compositionRenderer = new CompositionRenderer(this.settings, this.fonts);
       this.mediaStream = this.compositionRenderer.captureStream(this.settings.fps);
 
       const mimeType = getSupportedMimeType() || 'video/webm';

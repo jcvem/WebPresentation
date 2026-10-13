@@ -35,8 +35,12 @@ export class RecordingPanel {
   }
 
   private render(): void {
+    const hasExistingStatusBar = typeof document !== 'undefined' && Boolean(document.getElementById('recording-status-bar'));
     const markup = `
-      <!-- Visible recording status HUD / bar -->
+      ${
+        hasExistingStatusBar
+          ? ''
+          : `<!-- Visible recording status HUD / bar -->
       <aside class="recording-status-bar" id="recording-status-bar" role="status" aria-live="polite" hidden>
         <div class="recording-status-indicator">
           <span class="rec-pulse-dot" aria-hidden="true"></span>
@@ -60,7 +64,8 @@ export class RecordingPanel {
             <span>Cancel</span>
           </button>
         </div>
-      </aside>
+      </aside>`
+      }
 
       <!-- Unsupported browser quiet notice banner -->
       <div class="record-unsupported-notice" id="record-unsupported-notice" role="alert" hidden>
@@ -124,11 +129,11 @@ export class RecordingPanel {
     wrapper.innerHTML = markup;
     this.container.appendChild(wrapper);
 
-    this.statusBar = wrapper.querySelector('#recording-status-bar');
-    this.statusLabel = wrapper.querySelector('#rec-status-label');
-    this.timeElapsedEl = wrapper.querySelector('#rec-time-elapsed');
-    this.stopBtn = wrapper.querySelector('#btn-record-stop');
-    this.cancelBtn = wrapper.querySelector('#btn-record-cancel');
+    this.statusBar = document.getElementById('recording-status-bar') || wrapper.querySelector('#recording-status-bar');
+    this.statusLabel = document.getElementById('rec-status-label') || wrapper.querySelector('#rec-status-label');
+    this.timeElapsedEl = document.getElementById('rec-time-elapsed') || wrapper.querySelector('#rec-time-elapsed');
+    this.stopBtn = document.getElementById('btn-record-stop') || wrapper.querySelector('#btn-record-stop');
+    this.cancelBtn = document.getElementById('btn-record-cancel') || wrapper.querySelector('#btn-record-cancel');
 
     this.completeDialog = wrapper.querySelector('#record-complete-dialog');
     this.videoPreview = wrapper.querySelector('#record-video-preview');
@@ -250,24 +255,31 @@ export class RecordingPanel {
   }
 
   private updateUIForStatus(status: RecordingStatus, _error?: string): void {
+    const recLabel = document.getElementById('rec-btn-label');
+    const ctrlToggle = document.getElementById('btn-hdr-control');
+    const ctrlPulse = document.getElementById('ctrl-rec-pulse');
+
     if (this.recordBtn) {
       if (status === 'unsupported') {
         this.recordBtn.disabled = true;
         this.recordBtn.setAttribute('aria-disabled', 'true');
         this.recordBtn.title = 'Recording presentation unavailable: MediaRecorder not supported';
         this.recordBtn.classList.add('disabled');
+        if (recLabel) recLabel.textContent = 'Recording Unsupported';
       } else if (status === 'recording' || status === 'preparing') {
         this.recordBtn.disabled = false;
         this.recordBtn.setAttribute('aria-disabled', 'false');
         this.recordBtn.classList.add('active', 'recording');
         this.recordBtn.setAttribute('aria-label', 'Stop presentation recording');
         this.recordBtn.title = 'Click to stop presentation recording';
+        if (recLabel) recLabel.textContent = 'Stop recording';
       } else {
         this.recordBtn.disabled = false;
         this.recordBtn.setAttribute('aria-disabled', 'false');
         this.recordBtn.classList.remove('active', 'recording');
         this.recordBtn.setAttribute('aria-label', 'Record presentation');
         this.recordBtn.title = 'Record presentation to short video';
+        if (recLabel) recLabel.textContent = 'Record presentation';
       }
     }
 
@@ -278,11 +290,15 @@ export class RecordingPanel {
       if (this.durationSelect) {
         this.durationSelect.disabled = true;
       }
+      if (ctrlToggle) ctrlToggle.classList.add('is-recording');
+      if (ctrlPulse) ctrlPulse.style.display = 'inline-block';
     } else {
       this.hideStatusBar();
       if (this.durationSelect) {
         this.durationSelect.disabled = false;
       }
+      if (ctrlToggle) ctrlToggle.classList.remove('is-recording');
+      if (ctrlPulse) ctrlPulse.style.display = 'none';
     }
   }
 

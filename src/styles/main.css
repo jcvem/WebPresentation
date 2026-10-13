@@ -1,5 +1,6 @@
 @import './tokens.css';
 @import './recorder.css';
+@import './studio.css';
 
 /* 1. Global Reset & Box Sizing */
 *, *::before, *::after {
@@ -119,6 +120,10 @@ html, body {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
+  max-width: calc(100vw - 460px);
+  pointer-events: none;
+  display: flex;
+  justify-content: center;
 }
 
 .slide-indicator {
@@ -129,17 +134,29 @@ html, body {
   font-size: var(--text-xs);
   color: var(--text-secondary);
   letter-spacing: 0.05em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
 }
 
 .slide-indicator-num {
   color: var(--accent);
   font-weight: 600;
+  flex-shrink: 0;
+}
+
+.slide-indicator-sep {
+  flex-shrink: 0;
 }
 
 .slide-indicator-title {
   color: var(--text-primary);
   font-weight: 500;
   letter-spacing: 0.08em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .header-right {
@@ -345,7 +362,7 @@ html, body {
 .slide-title {
   font-family: var(--font-display);
   font-size: clamp(2rem, 5vw, 3.75rem);
-  font-weight: 700;
+  font-weight: var(--font-display-weight, 700);
   line-height: 1.05;
   letter-spacing: -0.02em;
   color: var(--text-primary);
@@ -355,6 +372,7 @@ html, body {
 .slide-thesis {
   font-family: var(--font-body);
   font-size: clamp(0.95rem, 1.8vw, 1.15rem);
+  font-weight: var(--font-body-weight, 400);
   line-height: 1.5;
   color: var(--text-secondary);
   max-width: 480px;

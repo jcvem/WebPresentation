@@ -6,10 +6,21 @@ export class CompositionRenderer {
   private ctx: CanvasRenderingContext2D;
   private width: number;
   private height: number;
+  private displayFont: string = 'Syne';
+  private bodyFont: string = 'Space Grotesk';
+  private displayWeight: number = 700;
+  private bodyWeight: number = 400;
 
-  constructor(settings: RecordingSettings) {
+  constructor(
+    settings: RecordingSettings,
+    fonts?: { displayFont?: string; bodyFont?: string; displayWeight?: number; bodyWeight?: number }
+  ) {
     this.width = settings.outputWidth;
     this.height = settings.outputHeight;
+    if (fonts?.displayFont) this.displayFont = fonts.displayFont;
+    if (fonts?.bodyFont) this.bodyFont = fonts.bodyFont;
+    if (fonts?.displayWeight) this.displayWeight = fonts.displayWeight;
+    if (fonts?.bodyWeight) this.bodyWeight = fonts.bodyWeight;
 
     this.canvas = document.createElement('canvas');
     this.canvas.width = this.width;
@@ -31,6 +42,18 @@ export class CompositionRenderer {
       throw new Error('Could not acquire 2D rendering context for composition canvas.');
     }
     this.ctx = ctx;
+  }
+
+  public setFonts(
+    displayFont: string,
+    bodyFont: string,
+    displayWeight: number = 700,
+    bodyWeight: number = 400
+  ): void {
+    if (displayFont) this.displayFont = displayFont;
+    if (bodyFont) this.bodyFont = bodyFont;
+    if (displayWeight) this.displayWeight = displayWeight;
+    if (bodyWeight) this.bodyWeight = bodyWeight;
   }
 
   public getCanvas(): HTMLCanvasElement {
@@ -157,7 +180,7 @@ export class CompositionRenderer {
     ctx.fill();
 
     ctx.fillStyle = '#f0eee9';
-    ctx.font = `700 ${Math.round(12 * s)}px 'Syne', -apple-system, sans-serif`;
+    ctx.font = `${this.displayWeight} ${Math.round(12 * s)}px '${this.displayFont}', -apple-system, sans-serif`;
     ctx.textBaseline = 'middle';
     ctx.fillText('OBJECTS IN MOTION', 54 * s, headerH / 2);
 
@@ -229,13 +252,13 @@ export class CompositionRenderer {
     curY += 28 * s;
 
     // 2. Slide Title
-    ctx.font = `700 ${Math.round(38 * s)}px 'Syne', -apple-system, sans-serif`;
+    ctx.font = `${this.displayWeight} ${Math.round(38 * s)}px '${this.displayFont}', -apple-system, sans-serif`;
     ctx.fillStyle = '#f0eee9';
     curY = this.drawWrappedText(ctx, slide.title, x, curY, maxWidth, 44 * s);
     curY += 12 * s;
 
     // 3. Slide Thesis
-    ctx.font = `400 ${Math.round(15 * s)}px 'Space Grotesk', -apple-system, sans-serif`;
+    ctx.font = `${this.bodyWeight} ${Math.round(15 * s)}px '${this.bodyFont}', -apple-system, sans-serif`;
     ctx.fillStyle = '#8e94a0';
     curY = this.drawWrappedText(ctx, slide.thesis, x, curY, maxWidth, 23 * s);
     curY += 22 * s;
@@ -246,7 +269,7 @@ export class CompositionRenderer {
       ctx.fillStyle = '#e05a36';
       ctx.fillRect(x, curY, 3 * s, 48 * s);
 
-      ctx.font = `400 ${Math.round(13.5 * s)}px 'Space Grotesk', -apple-system, sans-serif`;
+      ctx.font = `${this.bodyWeight} ${Math.round(13.5 * s)}px '${this.bodyFont}', -apple-system, sans-serif`;
       ctx.fillStyle = '#f0eee9';
       this.drawWrappedText(ctx, slide.body, x + 14 * s, curY, maxWidth - 16 * s, 20 * s);
     } else if (slide.sequence) {
@@ -262,11 +285,11 @@ export class CompositionRenderer {
         ctx.fillStyle = '#e05a36';
         ctx.fillText(step.index, x + 10 * s, stepY + 8 * s);
 
-        ctx.font = `600 ${Math.round(12 * s)}px 'Syne', sans-serif`;
+        ctx.font = `${this.displayWeight} ${Math.round(12 * s)}px '${this.displayFont}', sans-serif`;
         ctx.fillStyle = '#f0eee9';
         ctx.fillText(step.title.toUpperCase(), x + 38 * s, stepY + 6 * s);
 
-        ctx.font = `400 ${Math.round(11 * s)}px 'Space Grotesk', sans-serif`;
+        ctx.font = `${this.bodyWeight} ${Math.round(11 * s)}px '${this.bodyFont}', sans-serif`;
         ctx.fillStyle = '#8e94a0';
         ctx.fillText(step.detail, x + 38 * s, stepY + 21 * s);
 
@@ -290,11 +313,11 @@ export class CompositionRenderer {
         ctx.fillStyle = '#e05a36';
         ctx.fillText(comp.tag, x + 14 * s, compY + 13 * s);
 
-        ctx.font = `600 ${Math.round(12 * s)}px 'Syne', sans-serif`;
+        ctx.font = `${this.displayWeight} ${Math.round(12 * s)}px '${this.displayFont}', sans-serif`;
         ctx.fillStyle = '#f0eee9';
         ctx.fillText(comp.name, x + 38 * s, compY + 8 * s);
 
-        ctx.font = `400 ${Math.round(11 * s)}px 'Space Grotesk', sans-serif`;
+        ctx.font = `${this.bodyWeight} ${Math.round(11 * s)}px '${this.bodyFont}', sans-serif`;
         ctx.fillStyle = '#8e94a0';
         ctx.fillText(comp.description, x + 38 * s, compY + 23 * s);
 
@@ -311,7 +334,7 @@ export class CompositionRenderer {
       ctx.lineTo(x, curY + 58 * s);
       ctx.stroke();
 
-      ctx.font = `400 ${Math.round(13.5 * s)}px 'Space Grotesk', -apple-system, sans-serif`;
+      ctx.font = `${this.bodyWeight} ${Math.round(13.5 * s)}px '${this.bodyFont}', -apple-system, sans-serif`;
       ctx.fillStyle = '#f0eee9';
       this.drawWrappedText(ctx, slide.takeaway, x + 14 * s, curY + 8 * s, maxWidth - 24 * s, 19 * s);
     }
