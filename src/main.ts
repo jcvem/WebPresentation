@@ -160,7 +160,8 @@ function initApp(): void {
   const recorder = new PresentationRecorder({
     slides: initialSlides,
     controller,
-    objectRenderer
+    objectRenderer,
+    theme: themeManager.getCurrentTheme()
   });
 
   // Sync active typography with video composition recorder
@@ -173,6 +174,12 @@ function initApp(): void {
   );
   fontManager.onFontChange((sel) => {
     recorder.setFonts(sel.displayFont, sel.bodyFont, sel.displayWeight, sel.bodyWeight);
+  });
+
+  // Sync active color theme with video composition recorder
+  recorder.setTheme(themeManager.getCurrentTheme());
+  themeManager.onThemeChange((theme) => {
+    recorder.setTheme(theme);
   });
 
   const recordingPanel = new RecordingPanel(document.body, recorder);

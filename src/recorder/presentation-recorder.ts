@@ -12,14 +12,15 @@ import {
   getSupportedMimeType,
   isRecordingSupported,
   generateRecordingFilename
-} from './mime-utils';
 import { CompositionRenderer } from './composition-renderer';
+import { ColorTheme, CURATED_THEMES } from '../themes/theme-manager';
 
 export interface RecorderOptions {
   slides: SlideData[];
   controller: PresentationController;
   objectRenderer: ObjectRenderer;
   settings?: Partial<RecordingSettings>;
+  theme?: ColorTheme;
 }
 
 export const DEFAULT_SETTINGS: RecordingSettings = {
@@ -36,6 +37,7 @@ export class PresentationRecorder {
   public objectRenderer: ObjectRenderer;
   public settings: RecordingSettings;
   public status: RecordingStatus = 'idle';
+  public theme: ColorTheme = CURATED_THEMES[0];
   private fonts: { displayFont?: string; bodyFont?: string; displayWeight?: number; bodyWeight?: number } = {
     displayFont: 'Syne',
     bodyFont: 'Space Grotesk',
@@ -66,6 +68,9 @@ export class PresentationRecorder {
     this.controller = options.controller;
     this.objectRenderer = options.objectRenderer;
     this.settings = { ...DEFAULT_SETTINGS, ...options.settings };
+    if (options.theme) {
+      this.theme = options.theme;
+    }
 
     if (!isRecordingSupported()) {
       this.status = 'unsupported';
@@ -86,6 +91,17 @@ export class PresentationRecorder {
     if (this.compositionRenderer) {
       this.compositionRenderer.setFonts(displayFont, bodyFont, displayWeight, bodyWeight);
     }
+  }
+
+  public setTheme(theme: ColorTheme): void {
+    this.theme = theme;
+    if (this.compositionRenderer) {
+      this.compositionRenderer.setTheme(theme);
+    }
+  }
+
+  public getTheme(): ColorTheme {
+    return this.theme;
   }
 
   public subscribe(listener: RecordingLifecycleListener): () => void {
@@ -156,7 +172,7 @@ export class PresentationRecorder {
 
     // 2. Setup Composition Canvas & Stream
     try {
-      this.compositionRenderer = new CompositionRenderer(this.settings, this.fonts);
+      this.compositionRenderer = new CompositionRenderer(this.settings, this.fonts, this.theme);
       this.mediaStream = this.compositionRenderer.captureStream(this.settings.fps);
 
       const mimeType = getSupportedMimeType() || 'video/webm';

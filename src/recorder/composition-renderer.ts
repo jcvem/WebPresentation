@@ -1,5 +1,6 @@
 import { SlideData } from '../slides/slide-data';
 import { RecordingSettings } from './types';
+import { ColorTheme, CURATED_THEMES } from '../themes/theme-manager';
 
 export class CompositionRenderer {
   private canvas: HTMLCanvasElement;
@@ -10,10 +11,12 @@ export class CompositionRenderer {
   private bodyFont: string = 'Space Grotesk';
   private displayWeight: number = 700;
   private bodyWeight: number = 400;
+  private theme: ColorTheme = CURATED_THEMES[0];
 
   constructor(
     settings: RecordingSettings,
-    fonts?: { displayFont?: string; bodyFont?: string; displayWeight?: number; bodyWeight?: number }
+    fonts?: { displayFont?: string; bodyFont?: string; displayWeight?: number; bodyWeight?: number },
+    theme?: ColorTheme
   ) {
     this.width = settings.outputWidth;
     this.height = settings.outputHeight;
@@ -21,6 +24,7 @@ export class CompositionRenderer {
     if (fonts?.bodyFont) this.bodyFont = fonts.bodyFont;
     if (fonts?.displayWeight) this.displayWeight = fonts.displayWeight;
     if (fonts?.bodyWeight) this.bodyWeight = fonts.bodyWeight;
+    if (theme) this.theme = theme;
 
     this.canvas = document.createElement('canvas');
     this.canvas.width = this.width;
@@ -56,6 +60,16 @@ export class CompositionRenderer {
     if (bodyWeight) this.bodyWeight = bodyWeight;
   }
 
+  public setTheme(theme: ColorTheme): void {
+    if (theme) {
+      this.theme = theme;
+    }
+  }
+
+  public getTheme(): ColorTheme {
+    return this.theme;
+  }
+
   public getCanvas(): HTMLCanvasElement {
     return this.canvas;
   }
@@ -76,12 +90,13 @@ export class CompositionRenderer {
     const W = this.width;
     const H = this.height;
     const s = W / 1280; // Scale relative to 1280x720 base
+    const colors = this.theme.colors;
 
-    // 1. Dark Obsidian Canvas Base
-    ctx.fillStyle = '#090a0d';
+    // 1. Dynamic Canvas Base (matches selected theme background)
+    ctx.fillStyle = colors.bgPrimary;
     ctx.fillRect(0, 0, W, H);
 
-    // 2. Architectural Reticle & Crosshairs
+    // 2. Reticle & Crosshairs (matches theme hairline)
     this.drawReticle(ctx, W, H, s);
 
     // 3. Render 3D Kinetic Subject (from WebGL canvas)
@@ -122,7 +137,7 @@ export class CompositionRenderer {
 
   private drawReticle(ctx: CanvasRenderingContext2D, W: number, H: number, s: number): void {
     ctx.save();
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.04)';
+    ctx.strokeStyle = this.theme.colors.hairline;
     ctx.lineWidth = 1;
 
     // Center vertical and horizontal hairlines
@@ -143,7 +158,7 @@ export class CompositionRenderer {
     ctx.stroke();
 
     // Left division rule separating text from 3D zone
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.06)';
+    ctx.strokeStyle = this.theme.colors.hairline;
     ctx.beginPath();
     ctx.moveTo(W * 0.49, 48 * s);
     ctx.lineTo(W * 0.49, H - 48 * s);
@@ -162,11 +177,12 @@ export class CompositionRenderer {
     s: number
   ): void {
     const headerH = 46 * s;
+    const colors = this.theme.colors;
 
     // Header background & border
-    ctx.fillStyle = 'rgba(9, 10, 13, 0.92)';
+    ctx.fillStyle = colors.bgHeader;
     ctx.fillRect(0, 0, W, headerH);
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.09)';
+    ctx.strokeStyle = colors.hairline;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(0, headerH);
@@ -174,48 +190,48 @@ export class CompositionRenderer {
     ctx.stroke();
 
     // Left brand dot + name
-    ctx.fillStyle = '#e05a36';
+    ctx.fillStyle = colors.accent;
     ctx.beginPath();
     ctx.arc(42 * s, headerH / 2, 3.5 * s, 0, Math.PI * 2);
     ctx.fill();
 
-    ctx.fillStyle = '#f0eee9';
+    ctx.fillStyle = colors.textPrimary;
     ctx.font = `${this.displayWeight} ${Math.round(12 * s)}px '${this.displayFont}', -apple-system, sans-serif`;
     ctx.textBaseline = 'middle';
     ctx.fillText('OBJECTS IN MOTION', 54 * s, headerH / 2);
 
-    ctx.fillStyle = '#525866';
-    ctx.font = `500 ${Math.round(10 * s)}px 'JetBrains Mono', monospace`;
+    ctx.fillStyle = colors.textTertiary;
+    ctx.font = `500 ${Math.round(10 * s)}px 'Google Sans Flex', 'Google Sans', sans-serif`;
     ctx.fillText('EST. 2026 / STUDY 04', 216 * s, headerH / 2);
 
     // Center slide indicator
     const currentNumStr = `0${slideIndex + 1}`;
     const totalNumStr = `0${totalSlides}`;
-    ctx.fillStyle = '#e05a36';
-    ctx.font = `600 ${Math.round(11 * s)}px 'JetBrains Mono', monospace`;
+    ctx.fillStyle = colors.accent;
+    ctx.font = `600 ${Math.round(11 * s)}px 'Google Sans Flex', 'Google Sans', sans-serif`;
     ctx.fillText(`${currentNumStr} / ${totalNumStr}`, W * 0.48, headerH / 2);
 
-    ctx.fillStyle = '#525866';
+    ctx.fillStyle = colors.textTertiary;
     ctx.fillText('·', W * 0.48 + 58 * s, headerH / 2);
 
-    ctx.fillStyle = '#8e94a0';
-    ctx.font = `600 ${Math.round(11 * s)}px 'JetBrains Mono', monospace`;
+    ctx.fillStyle = colors.textSecondary;
+    ctx.font = `600 ${Math.round(11 * s)}px 'Google Sans Flex', 'Google Sans', sans-serif`;
     ctx.fillText(currentSlide.title.toUpperCase(), W * 0.48 + 72 * s, headerH / 2);
 
     // Right export badge
-    ctx.fillStyle = '#525866';
-    ctx.font = `500 ${Math.round(10 * s)}px 'JetBrains Mono', monospace`;
+    ctx.fillStyle = colors.textTertiary;
+    ctx.font = `500 ${Math.round(10 * s)}px 'Google Sans Flex', 'Google Sans', sans-serif`;
     ctx.textAlign = 'right';
     ctx.fillText('KINETIC MONOGRAPH RECORDING', W - 36 * s, headerH / 2);
     ctx.textAlign = 'left';
 
     // Progress bar along header bottom edge
     const progTrackH = 2 * s;
-    ctx.fillStyle = 'rgba(255, 255, 255, 0.08)';
+    ctx.fillStyle = colors.hairline;
     ctx.fillRect(0, headerH - progTrackH, W, progTrackH);
 
     const progressRatio = (slideIndex + Math.max(0, transitionProgress)) / totalSlides;
-    ctx.fillStyle = '#e05a36';
+    ctx.fillStyle = colors.accent;
     ctx.fillRect(0, headerH - progTrackH, W * Math.min(1, Math.max(0.01, progressRatio)), progTrackH);
   }
 
@@ -229,15 +245,16 @@ export class CompositionRenderer {
     s: number
   ): void {
     let curY = y;
+    const colors = this.theme.colors;
 
     // 1. Catalog Plate Badge
-    ctx.font = `600 ${Math.round(12 * s)}px 'JetBrains Mono', monospace`;
-    ctx.fillStyle = '#e05a36';
+    ctx.font = `600 ${Math.round(12 * s)}px 'Google Sans Flex', 'Google Sans', sans-serif`;
+    ctx.fillStyle = colors.accent;
     ctx.textBaseline = 'top';
     ctx.fillText(slide.catalogNumber, x, curY);
 
     // Rule separator
-    ctx.strokeStyle = 'rgba(255, 255, 255, 0.20)';
+    ctx.strokeStyle = colors.hairlineStrong;
     ctx.lineWidth = 1;
     ctx.beginPath();
     ctx.moveTo(x + 115 * s, curY + 7 * s);
@@ -245,52 +262,52 @@ export class CompositionRenderer {
     ctx.stroke();
 
     // Super title
-    ctx.font = `600 ${Math.round(10 * s)}px 'JetBrains Mono', monospace`;
-    ctx.fillStyle = '#525866';
+    ctx.font = `600 ${Math.round(10 * s)}px 'Google Sans Flex', 'Google Sans', sans-serif`;
+    ctx.fillStyle = colors.textTertiary;
     ctx.fillText(slide.superTitle.toUpperCase(), x + 155 * s, curY + 1 * s);
 
     curY += 28 * s;
 
     // 2. Slide Title
     ctx.font = `${this.displayWeight} ${Math.round(38 * s)}px '${this.displayFont}', -apple-system, sans-serif`;
-    ctx.fillStyle = '#f0eee9';
+    ctx.fillStyle = colors.textPrimary;
     curY = this.drawWrappedText(ctx, slide.title, x, curY, maxWidth, 44 * s);
     curY += 12 * s;
 
     // 3. Slide Thesis
     ctx.font = `${this.bodyWeight} ${Math.round(15 * s)}px '${this.bodyFont}', -apple-system, sans-serif`;
-    ctx.fillStyle = '#8e94a0';
+    ctx.fillStyle = colors.textSecondary;
     curY = this.drawWrappedText(ctx, slide.thesis, x, curY, maxWidth, 23 * s);
     curY += 22 * s;
 
     // 4. Slide Specific Content Block
     if (slide.body) {
-      // Plate 2: Body text with cinnabar accent bar
-      ctx.fillStyle = '#e05a36';
+      // Plate 2: Body text with accent bar
+      ctx.fillStyle = colors.accent;
       ctx.fillRect(x, curY, 3 * s, 48 * s);
 
       ctx.font = `${this.bodyWeight} ${Math.round(13.5 * s)}px '${this.bodyFont}', -apple-system, sans-serif`;
-      ctx.fillStyle = '#f0eee9';
+      ctx.fillStyle = colors.textPrimary;
       this.drawWrappedText(ctx, slide.body, x + 14 * s, curY, maxWidth - 16 * s, 20 * s);
     } else if (slide.sequence) {
       // Plate 3: Motion Sequence Steps
       let stepY = curY;
       for (const step of slide.sequence) {
-        ctx.fillStyle = 'rgba(17, 19, 23, 0.55)';
+        ctx.fillStyle = colors.bgSurface;
         ctx.fillRect(x, stepY, maxWidth, 38 * s);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+        ctx.strokeStyle = colors.hairline;
         ctx.strokeRect(x, stepY, maxWidth, 38 * s);
 
-        ctx.font = `600 ${Math.round(11 * s)}px 'JetBrains Mono', monospace`;
-        ctx.fillStyle = '#e05a36';
+        ctx.font = `600 ${Math.round(11 * s)}px 'Google Sans Flex', 'Google Sans', sans-serif`;
+        ctx.fillStyle = colors.accent;
         ctx.fillText(step.index, x + 10 * s, stepY + 8 * s);
 
         ctx.font = `${this.displayWeight} ${Math.round(12 * s)}px '${this.displayFont}', sans-serif`;
-        ctx.fillStyle = '#f0eee9';
+        ctx.fillStyle = colors.textPrimary;
         ctx.fillText(step.title.toUpperCase(), x + 38 * s, stepY + 6 * s);
 
         ctx.font = `${this.bodyWeight} ${Math.round(11 * s)}px '${this.bodyFont}', sans-serif`;
-        ctx.fillStyle = '#8e94a0';
+        ctx.fillStyle = colors.textSecondary;
         ctx.fillText(step.detail, x + 38 * s, stepY + 21 * s);
 
         stepY += 44 * s;
@@ -299,43 +316,43 @@ export class CompositionRenderer {
       // Plate 4: Constituent Assemblies
       let compY = curY;
       for (const comp of slide.components) {
-        ctx.fillStyle = 'rgba(17, 19, 23, 0.65)';
+        ctx.fillStyle = colors.bgSurface;
         ctx.fillRect(x, compY, maxWidth, 40 * s);
-        ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+        ctx.strokeStyle = colors.hairline;
         ctx.strokeRect(x, compY, maxWidth, 40 * s);
 
         // Badge
-        ctx.fillStyle = 'rgba(224, 90, 54, 0.16)';
+        ctx.fillStyle = colors.accentMuted;
         ctx.fillRect(x + 8 * s, compY + 8 * s, 22 * s, 22 * s);
-        ctx.strokeStyle = 'rgba(224, 90, 54, 0.40)';
+        ctx.strokeStyle = colors.hairlineAccent;
         ctx.strokeRect(x + 8 * s, compY + 8 * s, 22 * s, 22 * s);
-        ctx.font = `700 ${Math.round(11 * s)}px 'JetBrains Mono', monospace`;
-        ctx.fillStyle = '#e05a36';
+        ctx.font = `700 ${Math.round(11 * s)}px 'Google Sans Flex', 'Google Sans', sans-serif`;
+        ctx.fillStyle = colors.accent;
         ctx.fillText(comp.tag, x + 14 * s, compY + 13 * s);
 
         ctx.font = `${this.displayWeight} ${Math.round(12 * s)}px '${this.displayFont}', sans-serif`;
-        ctx.fillStyle = '#f0eee9';
+        ctx.fillStyle = colors.textPrimary;
         ctx.fillText(comp.name, x + 38 * s, compY + 8 * s);
 
         ctx.font = `${this.bodyWeight} ${Math.round(11 * s)}px '${this.bodyFont}', sans-serif`;
-        ctx.fillStyle = '#8e94a0';
+        ctx.fillStyle = colors.textSecondary;
         ctx.fillText(comp.description, x + 38 * s, compY + 23 * s);
 
         compY += 46 * s;
       }
     } else if (slide.takeaway) {
       // Plate 5 & 6: Takeaways
-      ctx.fillStyle = 'rgba(17, 19, 23, 0.45)';
+      ctx.fillStyle = colors.bgSurface;
       ctx.fillRect(x, curY, maxWidth, 58 * s);
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
-      ctx.lineWidth = 2;
+      ctx.strokeStyle = colors.accent;
+      ctx.lineWidth = 3;
       ctx.beginPath();
       ctx.moveTo(x, curY);
       ctx.lineTo(x, curY + 58 * s);
       ctx.stroke();
 
       ctx.font = `${this.bodyWeight} ${Math.round(13.5 * s)}px '${this.bodyFont}', -apple-system, sans-serif`;
-      ctx.fillStyle = '#f0eee9';
+      ctx.fillStyle = colors.textPrimary;
       this.drawWrappedText(ctx, slide.takeaway, x + 14 * s, curY + 8 * s, maxWidth - 24 * s, 19 * s);
     }
 
@@ -344,7 +361,7 @@ export class CompositionRenderer {
       const footerY = H - 62 * s;
 
       // Divider line
-      ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
+      ctx.strokeStyle = colors.hairline;
       ctx.lineWidth = 1;
       ctx.beginPath();
       ctx.moveTo(x, footerY);
@@ -353,12 +370,12 @@ export class CompositionRenderer {
 
       let metaX = x;
       for (const item of slide.metadata) {
-        ctx.font = `500 ${Math.round(9 * s)}px 'JetBrains Mono', monospace`;
-        ctx.fillStyle = '#525866';
+        ctx.font = `500 ${Math.round(9 * s)}px 'Google Sans Flex', 'Google Sans', sans-serif`;
+        ctx.fillStyle = colors.textTertiary;
         ctx.fillText(item.label, metaX, footerY + 12 * s);
 
-        ctx.font = `600 ${Math.round(11 * s)}px 'JetBrains Mono', monospace`;
-        ctx.fillStyle = '#8e94a0';
+        ctx.font = `600 ${Math.round(11 * s)}px 'Google Sans Flex', 'Google Sans', sans-serif`;
+        ctx.fillStyle = colors.textSecondary;
         ctx.fillText(item.value, metaX, footerY + 26 * s);
 
         metaX += 130 * s;

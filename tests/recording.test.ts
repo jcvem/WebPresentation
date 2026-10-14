@@ -9,10 +9,12 @@ import {
   CANDIDATE_MIME_TYPES
 } from '../src/recorder/mime-utils';
 import { PresentationRecorder } from '../src/recorder/presentation-recorder';
+import { CompositionRenderer } from '../src/recorder/composition-renderer';
 import { PresentationController } from '../src/controller/presentation-controller';
 import { ObjectRenderer } from '../src/renderer/object-renderer';
 import { SLIDES } from '../src/slides/slide-data';
 import { RecordingLifecycleEvent } from '../src/recorder/types';
+import { CURATED_THEMES } from '../src/themes/theme-manager';
 
 describe('MIME Selection & Utilities', () => {
   it('should select VP9 when available as highest priority', () => {
@@ -427,5 +429,45 @@ describe('PresentationRecorder Lifecycle, Transitions & Cleanup', () => {
     expect(URL.revokeObjectURL).toHaveBeenCalledWith('blob:http://localhost/mock-video-url');
     expect(recorder.getCurrentResult()).toBeNull();
     expect(recorder.status).toBe('idle');
+  });
+
+  it('should accept and synchronize dynamic color themes in PresentationRecorder and CompositionRenderer', async () => {
+    const cobaltTheme = CURATED_THEMES.find((t) => t.id === 'ceramic-cobalt')!;
+    expect(cobaltTheme).toBeDefined();
+
+    const recorder = new PresentationRecorder({
+      slides: SLIDES,
+      controller,
+      objectRenderer,
+      theme: cobaltTheme,
+      settings: { slideDurationMs: 100 }
+    });
+
+    expect(recorder.getTheme().id).toBe('ceramic-cobalt');
+    expect(recorder.theme.colors.bgPrimary).toBe('#f8f9fa');
+
+    // Switch theme to onyx-emerald
+    const emeraldTheme = CURATED_THEMES.find((t) => t.id === 'onyx-emerald')!;
+    recorder.setTheme(emeraldTheme);
+    expect(recorder.getTheme().id).toBe('onyx-emerald');
+    expect(recorder.theme.colors.accent).toBe('#059669');
+
+    // Direct CompositionRenderer verification
+    const compRenderer = new CompositionRenderer(
+      {
+        slideDurationMs: 100,
+        transitionDurationMs: 50,
+        outputWidth: 640,
+        outputHeight: 360,
+        fps: 30
+      },
+      undefined,
+      cobaltTheme
+    );
+
+    expect(compRenderer.getTheme().id).toBe('ceramic-cobalt');
+    compRenderer.setTheme(emeraldTheme);
+    expect(compRenderer.getTheme().id).toBe('onyx-emerald');
+    compRenderer.destroy();
   });
 });
