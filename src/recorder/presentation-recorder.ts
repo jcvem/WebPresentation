@@ -12,6 +12,7 @@ import {
   getSupportedMimeType,
   isRecordingSupported,
   generateRecordingFilename
+} from './mime-utils';
 import { CompositionRenderer } from './composition-renderer';
 import { ColorTheme, CURATED_THEMES } from '../themes/theme-manager';
 
