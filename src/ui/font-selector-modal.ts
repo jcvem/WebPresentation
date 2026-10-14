@@ -302,6 +302,9 @@ export class FontSelectorModal {
       if (displayWeightTag) {
         displayWeightTag.textContent = WEIGHT_NAMES[displayWeight] || String(displayWeight);
       }
+      if (bodyWeightTag) {
+        bodyWeightTag.textContent = WEIGHT_NAMES[bodyWeight] || String(bodyWeight);
+      }
       if (previewSpecTag) {
         previewSpecTag.textContent = `${displayFont || 'Display'} (${displayWeight}) + ${bodyFont || 'Body'} (${bodyWeight})`;
       }

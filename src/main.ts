@@ -1,5 +1,5 @@
 import './styles/main.css';
-import { SLIDES, SlideData } from './slides/slide-data';
+import { SlideData } from './slides/slide-data';
 import { renderSlideMarkup } from './ui/slide-view';
 import { ObjectRenderer } from './renderer/object-renderer';
 import { PresentationController } from './controller/presentation-controller';
@@ -133,8 +133,7 @@ function initApp(): void {
   const reloadSlideMarkup = (slides: SlideData[]) => {
     viewport.innerHTML = slides.map((slide) => renderSlideMarkup(slide, slides.length)).join('');
     slideElements = Array.from(viewport.querySelectorAll<HTMLElement>('.slide'));
-    controller.slideElements = slideElements;
-    controller.slides = slides;
+    controller.updateSlides(slides, slideElements);
     wireClosingActions();
     const currentSlide = slides[controller.currentIndex] || slides[0];
     headerControls.update(currentSlide, controller.currentIndex);

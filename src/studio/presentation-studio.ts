@@ -1047,7 +1047,7 @@ export class PresentationStudio {
     });
   }
 
-  private updateModelBadge(name: string): void {
+  public updateModelBadge(name: string): void {
     const badge = this.studioDrawer?.querySelector('#studio-model-badge');
     if (badge) badge.textContent = name;
   }
