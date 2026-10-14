@@ -7,6 +7,7 @@ import { renderSlideMarkup } from '../ui/slide-view';
 import { parseOBJ, createIcosahedronPreset, createTorusKnotPreset, createMobiusStripPreset } from '../renderer/obj-loader';
 import { parseGLB } from '../renderer/glb-loader';
 import { MeshData } from '../renderer/geometry';
+import { ThemeManager, ColorTheme } from '../themes/theme-manager';
 
 const STORAGE_KEY = 'objects_in_motion_studio_slides_v1';
 const MODEL_TYPE_STORAGE_KEY = 'objects_in_motion_model_type';
@@ -113,23 +114,31 @@ export class PresentationStudio {
   private studioDrawer: HTMLElement | null = null;
   private fileInput: HTMLInputElement | null = null;
 
+  private themeManager?: ThemeManager;
+  private onOpenThemeModal?: () => void;
+
   constructor(options: {
     viewport: HTMLElement;
     controller: PresentationController;
     objectRenderer: ObjectRenderer;
     recorder: PresentationRecorder;
     headerControls: HeaderControls;
+    themeManager?: ThemeManager;
+    onOpenThemeModal?: () => void;
   }) {
     this.viewport = options.viewport;
     this.controller = options.controller;
     this.objectRenderer = options.objectRenderer;
     this.recorder = options.recorder;
     this.headerControls = options.headerControls;
+    this.themeManager = options.themeManager;
+    this.onOpenThemeModal = options.onOpenThemeModal;
 
     this.slides = this.loadSlides();
     this.createStudioUI();
     this.createFileInput();
     this.initModelSelection();
+    this.initThemeSelection();
   }
 
   public getSlides(): SlideData[] {
@@ -615,6 +624,28 @@ export class PresentationStudio {
             </div>
           </section>
 
+          <!-- Section: Color Theme & Chromatics -->
+          <section class="studio-section studio-theme-section">
+            <div class="section-header-row">
+              <h4 class="studio-section-title">COLOR THEME & IDENTITY</h4>
+              <span class="model-active-badge" id="studio-theme-badge">Obsidian & Cadmium</span>
+            </div>
+
+            <div class="studio-field">
+              <label for="sel-studio-theme">EXHIBITION PALETTE</label>
+              <select id="sel-studio-theme" class="studio-select">
+                <option value="obsidian-cadmium">Obsidian & Cadmium (Dark & Orange)</option>
+                <option value="ceramic-cobalt">Ceramic & Cobalt (White & Blue)</option>
+                <option value="onyx-emerald">Onyx & Emerald (Dark & Green)</option>
+                <option value="ivory-crimson">Ivory & Crimson (Warm & Crimson)</option>
+                <option value="midnight-amethyst">Midnight & Amethyst (Nocturne Violet)</option>
+              </select>
+            </div>
+            <button type="button" class="btn-studio-action" id="btn-open-theme-modal" style="width: 100%;">
+              Open Palette Modal...
+            </button>
+          </section>
+
           <!-- Section: 3D Kinetic Object Pose & Motion -->
           <section class="studio-section">
             <div class="section-header-row">
@@ -776,6 +807,19 @@ export class PresentationStudio {
     });
 
     // 3D Model Swapper events
+    const themeSelect = this.studioDrawer.querySelector('#sel-studio-theme') as HTMLSelectElement;
+    const openThemeModalBtn = this.studioDrawer.querySelector('#btn-open-theme-modal');
+
+    themeSelect?.addEventListener('change', () => {
+      if (this.themeManager) {
+        this.themeManager.selectTheme(themeSelect.value);
+      }
+    });
+
+    openThemeModalBtn?.addEventListener('click', () => {
+      this.onOpenThemeModal?.();
+    });
+
     const modelSelect = this.studioDrawer.querySelector('#sel-model-preset') as HTMLSelectElement;
     const uploadContainer = this.studioDrawer.querySelector('#obj-upload-container') as HTMLElement;
     const dropzone = this.studioDrawer.querySelector('#obj-dropzone') as HTMLElement;
@@ -978,6 +1022,20 @@ export class PresentationStudio {
     } catch (e) {
       console.warn('Could not restore 3D model selection from localStorage:', e);
     }
+  }
+
+  private initThemeSelection(): void {
+    if (!this.themeManager) return;
+    const current = this.themeManager.getCurrentTheme();
+    this.updateTheme(current);
+  }
+
+  public updateTheme(theme: ColorTheme): void {
+    if (!this.studioDrawer) return;
+    const badge = this.studioDrawer.querySelector('#studio-theme-badge');
+    const select = this.studioDrawer.querySelector('#sel-studio-theme') as HTMLSelectElement;
+    if (badge) badge.textContent = theme.name;
+    if (select) select.value = theme.id;
   }
 
   private bindSlider(sliderId: string, valueId: string, poseKey: keyof ObjectPose): void {

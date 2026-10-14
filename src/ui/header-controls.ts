@@ -17,10 +17,12 @@ export class HeaderControls {
   private recordBtn: HTMLButtonElement | null = null;
   private durationSelect: HTMLSelectElement | null = null;
   private fontBtn: HTMLButtonElement | null = null;
+  private themeBtn: HTMLButtonElement | null = null;
   private studioBtn: HTMLButtonElement | null = null;
   private controlToggleBtn: HTMLButtonElement | null = null;
   private controlPopoverEl: HTMLElement | null = null;
   private onFontsClick?: () => void;
+  private onThemeClick?: () => void;
   private onStudioClick?: () => void;
 
   constructor(container: HTMLElement, controller: PresentationController) {
@@ -86,6 +88,11 @@ export class HeaderControls {
                     <span class="ctrl-menu-icon">Aa</span>
                     <span class="ctrl-menu-title">FONTS PALETTE</span>
                     <span class="ctrl-menu-hint">Google Fonts</span>
+                  </button>
+                  <button type="button" class="ctrl-menu-item btn-theme" id="btn-hdr-theme" role="menuitem" title="Select Color Themes and palettes">
+                    <span class="ctrl-menu-icon">🎨</span>
+                    <span class="ctrl-menu-title">COLOR THEMES</span>
+                    <span class="ctrl-menu-hint">Obsidian, Cobalt...</span>
                   </button>
                 </div>
 
@@ -209,6 +216,7 @@ export class HeaderControls {
     this.recordBtn = this.container.querySelector('#btn-hdr-record');
     this.durationSelect = this.container.querySelector('#record-duration-select');
     this.fontBtn = this.container.querySelector('#btn-hdr-fonts');
+    this.themeBtn = this.container.querySelector('#btn-hdr-theme');
     this.studioBtn = this.container.querySelector('#btn-hdr-studio');
     this.controlToggleBtn = this.container.querySelector('#btn-hdr-control');
     this.controlPopoverEl = this.container.querySelector('#control-menu-popover');
@@ -258,6 +266,11 @@ export class HeaderControls {
     this.fontBtn?.addEventListener('click', () => {
       toggleControlMenu(false);
       this.onFontsClick?.();
+    });
+
+    this.themeBtn?.addEventListener('click', () => {
+      toggleControlMenu(false);
+      this.onThemeClick?.();
     });
 
     this.studioBtn?.addEventListener('click', () => {
@@ -342,6 +355,10 @@ export class HeaderControls {
 
   public setOnFontsClick(cb: () => void): void {
     this.onFontsClick = cb;
+  }
+
+  public setOnThemeClick(cb: () => void): void {
+    this.onThemeClick = cb;
   }
 
   public setOnStudioClick(cb: () => void): void {

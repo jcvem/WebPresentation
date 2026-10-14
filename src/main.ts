@@ -8,6 +8,8 @@ import { PresentationRecorder } from './recorder/presentation-recorder';
 import { RecordingPanel } from './recorder/recording-panel';
 import { FontManager } from './fonts/font-manager';
 import { FontSelectorModal } from './ui/font-selector-modal';
+import { ThemeManager } from './themes/theme-manager';
+import { ThemeSelectorModal } from './ui/theme-selector-modal';
 import { PresentationStudio } from './studio/presentation-studio';
 
 function initApp(): void {
@@ -24,6 +26,10 @@ function initApp(): void {
   // 1. Font Manager & Google Fonts Modal
   const fontManager = new FontManager();
   const fontModal = new FontSelectorModal(document.body, fontManager);
+
+  // 1b. Color Themes Engine & Theme Modal
+  const themeManager = new ThemeManager();
+  const themeModal = new ThemeSelectorModal(document.body, themeManager);
 
   // 2. Load stored custom slides or fallback to default monograph slides
   let initialSlides: SlideData[] = SLIDES;
@@ -45,6 +51,14 @@ function initApp(): void {
 
   // 4. Initialize 3D Subject Renderer
   const objectRenderer = new ObjectRenderer(canvas, initialSlides[0].pose);
+  objectRenderer.setThemePalette(themeManager.getCurrentTheme().objectPalette);
+
+  themeManager.onThemeChange((theme) => {
+    objectRenderer.setThemePalette(theme.objectPalette);
+    if (studio) {
+      studio.updateTheme(theme);
+    }
+  });
 
   // 5. Initialize Presentation Controller & Header Controls
   let headerControls: HeaderControls;
@@ -122,12 +136,18 @@ function initApp(): void {
     controller,
     objectRenderer,
     recorder,
-    headerControls
+    headerControls,
+    themeManager,
+    onOpenThemeModal: () => themeModal.open()
   });
 
-  // Wire Header buttons to open Google Fonts modal and Authoring Studio
+  // Wire Header buttons to open Google Fonts modal, Color Themes modal, and Authoring Studio
   headerControls.setOnFontsClick(() => {
     fontModal.open();
+  });
+
+  headerControls.setOnThemeClick(() => {
+    themeModal.open();
   });
 
   headerControls.setOnStudioClick(() => {
@@ -146,6 +166,8 @@ function initApp(): void {
     (window as unknown as { __presentationStudio: PresentationStudio }).__presentationStudio = studio;
     (window as unknown as { __fontManager: FontManager }).__fontManager = fontManager;
     (window as unknown as { __fontModal: FontSelectorModal }).__fontModal = fontModal;
+    (window as unknown as { __themeManager: ThemeManager }).__themeManager = themeManager;
+    (window as unknown as { __themeModal: ThemeSelectorModal }).__themeModal = themeModal;
   }
 }
 

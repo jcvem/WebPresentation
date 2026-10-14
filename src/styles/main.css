@@ -71,7 +71,9 @@ html, body {
   right: 0;
   height: var(--header-height);
   z-index: var(--z-header);
-  background: rgba(9, 10, 13, 0.88);
+  background: var(--bg-header, rgba(9, 10, 13, 0.88));
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
   border-bottom: 1px solid var(--hairline);
   display: flex;
   align-items: center;
@@ -275,7 +277,7 @@ html, body {
   inset: 0;
   pointer-events: none;
   background-image: 
-    radial-gradient(circle at center, transparent 380px, rgba(9, 10, 13, 0.75) 750px),
+    radial-gradient(circle at center, transparent 380px, var(--bg-vignette, rgba(9, 10, 13, 0.75)) 750px),
     linear-gradient(to right, transparent calc(50% - 0.5px), var(--hairline) calc(50% - 0.5px), var(--hairline) calc(50% + 0.5px), transparent calc(50% + 0.5px)),
     linear-gradient(to bottom, transparent calc(50% - 0.5px), var(--hairline) calc(50% - 0.5px), var(--hairline) calc(50% + 0.5px), transparent calc(50% + 0.5px));
   opacity: 0.6;

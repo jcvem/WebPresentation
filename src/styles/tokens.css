@@ -19,6 +19,12 @@
   --hairline-strong: rgba(255, 255, 255, 0.20);
   --hairline-accent: rgba(224, 90, 54, 0.40);
 
+  /* Surface, modal & chromatic context tokens */
+  --bg-header: rgba(9, 10, 13, 0.88);
+  --bg-modal: rgba(13, 15, 20, 0.96);
+  --bg-modal-backdrop: rgba(4, 5, 7, 0.82);
+  --bg-vignette: rgba(9, 10, 13, 0.75);
+
   /* Typography Stacks (No Inter, Roboto, or Arial) */
   --font-display: 'Syne', -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
   --font-body: 'Space Grotesk', -apple-system, BlinkMacSystemFont, 'SF Pro Text', 'Avenir Next', sans-serif;

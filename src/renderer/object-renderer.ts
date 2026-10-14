@@ -14,7 +14,8 @@ import {
   createExtrudedRing,
   createFacetedCore,
   createReticlePins,
-  MeshData
+  MeshData,
+  GeometryPalette
 } from './geometry';
 import { ObjectPose } from '../slides/slide-data';
 
@@ -53,6 +54,11 @@ export class ObjectRenderer {
   private reticleBuf: PartBuffer | null = null;
   private customMeshBuf: PartBuffer | null = null;
   private customModelName: string = 'Kinetic Armillary';
+  private currentPalette: GeometryPalette = {
+    baseColor: [0.18, 0.20, 0.23],
+    highlightColor: [0.55, 0.58, 0.64],
+    accentColor: [0.88, 0.35, 0.21]
+  };
 
   // Current interpolated state
   private currentPose: ObjectPose;
@@ -178,16 +184,7 @@ export class ObjectRenderer {
     this.aColLoc = gl.getAttribLocation(program, 'aColor');
 
     // Create geometries
-    const outerRingMesh = createExtrudedRing(1.30, 1.52, 0.12, 40, 5);
-    const gimbalRingMesh = createExtrudedRing(0.98, 1.16, 0.09, 32, 4);
-    const coreMesh = createFacetedCore(0.62, 0.92, 8);
-    const reticleMesh = createReticlePins(1.68, 0.016);
-
-    this.outerRingBuf = this.createBuffer(gl, outerRingMesh);
-    this.gimbalRingBuf = this.createBuffer(gl, gimbalRingMesh);
-    this.coreUpperBuf = this.createBuffer(gl, coreMesh.upper);
-    this.coreLowerBuf = this.createBuffer(gl, coreMesh.lower);
-    this.reticleBuf = this.createBuffer(gl, reticleMesh);
+    this.rebuildDefaultGeometries();
 
     gl.enable(gl.DEPTH_TEST);
     gl.depthFunc(gl.LEQUAL);
@@ -557,6 +554,36 @@ export class ObjectRenderer {
 
   public getCustomModelName(): string {
     return this.customModelName;
+  }
+
+  public setThemePalette(palette: GeometryPalette): void {
+    this.currentPalette = {
+      baseColor: palette.baseColor ?? this.currentPalette.baseColor,
+      highlightColor: palette.highlightColor ?? this.currentPalette.highlightColor,
+      accentColor: palette.accentColor ?? this.currentPalette.accentColor
+    };
+    if (this.gl) {
+      this.rebuildDefaultGeometries();
+    }
+  }
+
+  public getThemePalette(): GeometryPalette {
+    return { ...this.currentPalette };
+  }
+
+  private rebuildDefaultGeometries(): void {
+    if (!this.gl) return;
+    const gl = this.gl;
+    const outerRingMesh = createExtrudedRing(1.30, 1.52, 0.12, 40, 5, this.currentPalette);
+    const gimbalRingMesh = createExtrudedRing(0.98, 1.16, 0.09, 32, 4, this.currentPalette);
+    const coreMesh = createFacetedCore(0.62, 0.92, 8, this.currentPalette);
+    const reticleMesh = createReticlePins(1.68, 0.016, this.currentPalette);
+
+    this.outerRingBuf = this.createBuffer(gl, outerRingMesh);
+    this.gimbalRingBuf = this.createBuffer(gl, gimbalRingMesh);
+    this.coreUpperBuf = this.createBuffer(gl, coreMesh.upper);
+    this.coreLowerBuf = this.createBuffer(gl, coreMesh.lower);
+    this.reticleBuf = this.createBuffer(gl, reticleMesh);
   }
 
   public destroy(): void {

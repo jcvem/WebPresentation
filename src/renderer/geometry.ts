@@ -7,6 +7,12 @@ export interface MeshData {
   indices: Uint16Array | Uint32Array;
 }
 
+export interface GeometryPalette {
+  baseColor?: [number, number, number];
+  highlightColor?: [number, number, number];
+  accentColor?: [number, number, number];
+}
+
 /**
  * Creates an extruded polygonal ring / bezel with chamfered faces.
  */
@@ -15,7 +21,8 @@ export function createExtrudedRing(
   outerRadius: number,
   height: number,
   segments: number = 36,
-  accentInterval: number = 6
+  accentInterval: number = 6,
+  palette?: GeometryPalette
 ): MeshData {
   const positions: number[] = [];
   const normals: number[] = [];
@@ -25,10 +32,10 @@ export function createExtrudedRing(
   const halfH = height / 2;
   const dTheta = (Math.PI * 2) / segments;
 
-  // Graphite titanium base color
-  const baseColor = [0.18, 0.20, 0.23];
-  const highlightColor = [0.55, 0.58, 0.64];
-  const accentColor = [0.88, 0.35, 0.21]; // Warm cadmium
+  // Base titanium / graphite and accent colors
+  const baseColor = palette?.baseColor ?? [0.18, 0.20, 0.23];
+  const highlightColor = palette?.highlightColor ?? [0.55, 0.58, 0.64];
+  const accentColor = palette?.accentColor ?? [0.88, 0.35, 0.21];
 
   // Generate vertices:
   // For each segment:
@@ -131,7 +138,12 @@ export function createExtrudedRing(
 /**
  * Creates a faceted crystalline core (split into upper & lower hemispheres with faceted facets).
  */
-export function createFacetedCore(radius: number = 0.6, height: number = 0.9, facets: number = 8): {
+export function createFacetedCore(
+  radius: number = 0.6,
+  height: number = 0.9,
+  facets: number = 8,
+  palette?: GeometryPalette
+): {
   upper: MeshData;
   lower: MeshData;
 } {
@@ -145,10 +157,10 @@ export function createFacetedCore(radius: number = 0.6, height: number = 0.9, fa
     const apexY = sign * height;
     const dTheta = (Math.PI * 2) / facets;
 
-    const baseColor = [0.22, 0.24, 0.29];
-    const facetColorA = [0.42, 0.45, 0.52];
-    const facetColorB = [0.28, 0.31, 0.37];
-    const accentCap = [0.88, 0.35, 0.21];
+    const baseColor = palette?.baseColor ?? [0.22, 0.24, 0.29];
+    const facetColorA = palette?.highlightColor ?? [0.42, 0.45, 0.52];
+    const facetColorB = palette?.baseColor ?? [0.28, 0.31, 0.37];
+    const accentCap = palette?.accentColor ?? [0.88, 0.35, 0.21];
 
     // Apex vertex
     // Side triangles to equator
@@ -243,14 +255,18 @@ export function createFacetedCore(radius: number = 0.6, height: number = 0.9, fa
 /**
  * Creates precision reticle needles and axis markers.
  */
-export function createReticlePins(length: number = 1.6, barRadius: number = 0.02): MeshData {
+export function createReticlePins(
+  length: number = 1.6,
+  barRadius: number = 0.02,
+  palette?: GeometryPalette
+): MeshData {
   const positions: number[] = [];
   const normals: number[] = [];
   const colors: number[] = [];
   const indices: number[] = [];
 
-  const accent = [0.88, 0.35, 0.21];
-  const pale = [0.70, 0.72, 0.76];
+  const accent = palette?.accentColor ?? [0.88, 0.35, 0.21];
+  const pale = palette?.highlightColor ?? [0.70, 0.72, 0.76];
 
   // Helper to add a rectangular prism bar
   function addBar(from: [number, number, number], to: [number, number, number], col: number[]) {

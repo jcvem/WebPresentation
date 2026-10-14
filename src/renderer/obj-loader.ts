@@ -1,5 +1,5 @@
 // Zero-dependency Wavefront OBJ Parser & Procedural 3D Mesh Presets
-import { MeshData } from './geometry';
+import { MeshData, GeometryPalette } from './geometry';
 
 export interface OBJParseResult {
   mesh: MeshData;
@@ -214,10 +214,14 @@ export function parseOBJ(objText: string, modelName: string = 'Custom Model'): O
 /**
  * Creates a faceted Icosahedron Prism Preset.
  */
-export function createIcosahedronPreset(): MeshData {
+export function createIcosahedronPreset(palette?: GeometryPalette): MeshData {
   const phi = (1 + Math.sqrt(5)) / 2;
   const radius = 1.15;
   const scale = radius / Math.hypot(1, phi, 0);
+
+  const accentColor = palette?.accentColor ?? [0.88, 0.35, 0.21];
+  const highlightColor = palette?.highlightColor ?? [0.65, 0.68, 0.74];
+  const baseColor = palette?.baseColor ?? [0.25, 0.28, 0.34];
 
   const rawVerts: [number, number, number][] = [
     [-1, phi, 0], [1, phi, 0], [-1, -phi, 0], [1, -phi, 0],
@@ -251,7 +255,7 @@ export function createIcosahedronPreset(): MeshData {
 
     const baseIdx = positions.length / 3;
     const isAccentFace = i % 4 === 0;
-    const color = isAccentFace ? [0.88, 0.35, 0.21] : (i % 2 === 0 ? [0.65, 0.68, 0.74] : [0.25, 0.28, 0.34]);
+    const color = isAccentFace ? accentColor : (i % 2 === 0 ? highlightColor : baseColor);
 
     for (const p of [p0, p1, p2]) {
       positions.push(p[0], p[1], p[2]);
@@ -273,13 +277,15 @@ export function createIcosahedronPreset(): MeshData {
 /**
  * Creates a mathematical Torus Knot (p=2, q=3) Preset.
  */
-export function createTorusKnotPreset(): MeshData {
+export function createTorusKnotPreset(palette?: GeometryPalette): MeshData {
   const tubularSegments = 72;
   const radialSegments = 16;
   const p = 2;
   const q = 3;
   const radius = 0.85;
   const tube = 0.16;
+
+  const accentColor = palette?.accentColor ?? [0.88, 0.35, 0.21];
 
   const positions: number[] = [];
   const normals: number[] = [];
@@ -340,7 +346,7 @@ export function createTorusKnotPreset(): MeshData {
 
       const isCadmium = i % 18 < 4;
       if (isCadmium) {
-        colors.push(0.88, 0.35, 0.21);
+        colors.push(...accentColor);
       } else {
         const shade = 0.25 + 0.35 * Math.abs(normY);
         colors.push(shade, shade * 1.05, shade * 1.15);
@@ -373,12 +379,14 @@ export function createTorusKnotPreset(): MeshData {
 /**
  * Creates an extruded Möbius Strip (topological half-twist non-orientable ribbon).
  */
-export function createMobiusStripPreset(): MeshData {
+export function createMobiusStripPreset(palette?: GeometryPalette): MeshData {
   const uSegments = 120;
   const vSegments = 8;
   const radius = 1.02;
   const halfWidth = 0.30;
   const halfThick = 0.035;
+
+  const accentColor = palette?.accentColor ?? [0.88, 0.35, 0.21];
 
   const positions: number[] = [];
   const normals: number[] = [];
@@ -430,8 +438,9 @@ export function createMobiusStripPreset(): MeshData {
       normals.push(nx, ny, nz);
 
       // Cadmium accent along the continuous edge, titanium inside
+      // Edge accent matches palette
       if (isEdge) {
-        colors.push(0.88, 0.35, 0.21);
+        colors.push(...accentColor);
       } else {
         const shade = 0.24 + 0.36 * Math.abs(cosHalfU);
         colors.push(shade, shade * 1.05, shade * 1.15);
@@ -448,7 +457,7 @@ export function createMobiusStripPreset(): MeshData {
       normals.push(-nx, -ny, -nz);
 
       if (isEdge) {
-        colors.push(0.88, 0.35, 0.21);
+        colors.push(...accentColor);
       } else {
         const shade = 0.20 + 0.30 * Math.abs(cosHalfU);
         colors.push(shade, shade * 1.05, shade * 1.15);

@@ -176,5 +176,16 @@ describe('PresentationStudio Authoring Engine', () => {
     const dropzone = document.getElementById('obj-dropzone');
     expect(dropzone?.textContent).toContain('.glb');
   });
+
+  it('should render color theme section in studio drawer', () => {
+    studio.setStudioMode(true);
+    const themeSelect = document.getElementById('sel-studio-theme') as HTMLSelectElement;
+    expect(themeSelect).not.toBeNull();
+    const cobaltOption = Array.from(themeSelect.options).find(o => o.value === 'ceramic-cobalt');
+    expect(cobaltOption).toBeDefined();
+
+    const openModalBtn = document.getElementById('btn-open-theme-modal');
+    expect(openModalBtn).not.toBeNull();
+  });
 });
 
