@@ -251,6 +251,58 @@ export class FontManager {
   constructor() {
     this.currentSelection = this.loadFromStorage();
     this.applyFonts(this.currentSelection, false);
+
+    // Preload all curated font pairing styles so previews render authentic fonts immediately
+    if (typeof window !== 'undefined') {
+      setTimeout(() => {
+        this.preloadCuratedFonts();
+      }, 50);
+    }
+  }
+
+  public preloadCuratedFonts(): Promise<void> {
+    if (typeof document === 'undefined') return Promise.resolve();
+
+    if (document.getElementById('google-fonts-curated-preloads')) {
+      return Promise.resolve();
+    }
+
+    const familiesMap = new Map<string, Set<number>>();
+    for (const p of CURATED_FONT_PAIRINGS) {
+      if (!familiesMap.has(p.displayFont)) familiesMap.set(p.displayFont, new Set());
+      familiesMap.get(p.displayFont)!.add(p.displayWeight ?? 700);
+
+      if (!familiesMap.has(p.bodyFont)) familiesMap.set(p.bodyFont, new Set());
+      familiesMap.get(p.bodyFont)!.add(p.bodyWeight ?? 400);
+    }
+
+    // Build unified Google Fonts request with all curated pairings
+    const parts: string[] = [];
+    familiesMap.forEach((weights, family) => {
+      const sanitized = family.trim().replace(/\s+/g, '+');
+      const sortedWeights = Array.from(weights).sort((a, b) => a - b);
+      parts.push(`family=${sanitized}:wght@${sortedWeights.join(';')}`);
+    });
+
+    const url = `https://fonts.googleapis.com/css2?${parts.join('&')}&display=swap`;
+
+    return new Promise((resolve) => {
+      const link = document.createElement('link');
+      link.id = 'google-fonts-curated-preloads';
+      link.rel = 'stylesheet';
+      link.href = url;
+      link.crossOrigin = 'anonymous';
+      link.onload = () => {
+        familiesMap.forEach((_, family) => {
+          this.loadedFonts.add(`${family.toLowerCase()}_preload`);
+        });
+        resolve();
+      };
+      link.onerror = () => {
+        Promise.all(Array.from(familiesMap.keys()).map((f) => this.ensureGoogleFontLoaded(f))).then(() => resolve());
+      };
+      document.head.appendChild(link);
+    });
   }
 
   public getSelection(): FontSelection {

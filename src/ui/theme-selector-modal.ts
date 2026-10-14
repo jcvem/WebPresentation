@@ -1,16 +1,22 @@
 // Color Theme Selector Modal Dialog
 import { ThemeManager, ColorTheme } from '../themes/theme-manager';
+import { I18nManager } from '../i18n/i18n-manager';
 
 export class ThemeSelectorModal {
   private container: HTMLElement;
   private themeManager: ThemeManager;
+  private i18n?: I18nManager;
   private dialog: HTMLDialogElement | null = null;
 
-  constructor(container: HTMLElement, themeManager: ThemeManager) {
+  constructor(container: HTMLElement, themeManager: ThemeManager, i18n?: I18nManager) {
     this.container = container;
     this.themeManager = themeManager;
+    this.i18n = i18n;
     this.render();
     this.bindEvents();
+    if (this.i18n) {
+      this.updateLanguage(this.i18n);
+    }
   }
 
   private render(): void {
@@ -287,6 +293,35 @@ export class ThemeSelectorModal {
         existingTag.remove();
       }
     });
+  }
+
+  public updateLanguage(i18n: I18nManager): void {
+    this.i18n = i18n;
+    if (!this.dialog) return;
+
+    const badge = this.dialog.querySelector('.theme-dialog-badge');
+    if (badge) badge.textContent = i18n.t('themeModalBadge');
+
+    const heading = this.dialog.querySelector('.theme-dialog-heading');
+    if (heading) heading.textContent = i18n.t('themeModalHeading');
+
+    const sub = this.dialog.querySelector('.theme-dialog-sub');
+    if (sub) sub.textContent = i18n.t('themeModalSub');
+
+    const tabCurated = this.dialog.querySelector('#tab-curated-themes');
+    if (tabCurated) tabCurated.textContent = i18n.t('tabCuratedThemes');
+
+    const tabCustom = this.dialog.querySelector('#tab-custom-theme');
+    if (tabCustom) tabCustom.textContent = i18n.t('tabCustomTheme');
+
+    const applyBtn = this.dialog.querySelector('#btn-apply-custom-theme');
+    if (applyBtn) applyBtn.textContent = i18n.t('btnApplyTheme');
+
+    const resetBtn = this.dialog.querySelector('#btn-theme-reset');
+    if (resetBtn) resetBtn.textContent = i18n.t('btnResetTheme');
+
+    const closeBtn = this.dialog.querySelector('#btn-theme-done');
+    if (closeBtn) closeBtn.textContent = i18n.isZh() ? '完成關閉' : 'CLOSE';
   }
 
   public open(): void {

@@ -222,38 +222,13 @@ export class PresentationController {
 
     switch (e.key) {
       case 'ArrowDown':
-      case 'PageDown':
-      case 'j':
-      case 'J':
         e.preventDefault();
         this.next();
         break;
 
       case 'ArrowUp':
-      case 'PageUp':
-      case 'k':
-      case 'K':
         e.preventDefault();
         this.prev();
-        break;
-
-      case ' ':
-        e.preventDefault();
-        if (e.shiftKey) {
-          this.prev();
-        } else {
-          this.next();
-        }
-        break;
-
-      case 'Home':
-        e.preventDefault();
-        this.goTo(0);
-        break;
-
-      case 'End':
-        e.preventDefault();
-        this.goTo(this.slides.length - 1);
         break;
 
       case 'r':

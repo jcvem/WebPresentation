@@ -53,7 +53,7 @@ export class ObjectRenderer {
   private coreLowerBuf: PartBuffer | null = null;
   private reticleBuf: PartBuffer | null = null;
   private customMeshBuf: PartBuffer | null = null;
-  private customModelName: string = 'Kinetic Armillary';
+  private customModelName: string = 'Triple-Twist Möbius Strip';
   private currentPalette: GeometryPalette = {
     baseColor: [0.18, 0.20, 0.23],
     highlightColor: [0.55, 0.58, 0.64],
@@ -543,7 +543,7 @@ export class ObjectRenderer {
     this.render();
   }
 
-  public setCustomModel(mesh: MeshData | null, name: string = 'Kinetic Armillary'): void {
+  public setCustomModel(mesh: MeshData | null, name: string = 'Triple-Twist Möbius Strip'): void {
     this.customModelName = name;
     if (this.gl && mesh) {
       this.customMeshBuf = this.createBuffer(this.gl, mesh);

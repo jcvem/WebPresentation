@@ -11,6 +11,8 @@ import { FontSelectorModal } from './ui/font-selector-modal';
 import { ThemeManager } from './themes/theme-manager';
 import { ThemeSelectorModal } from './ui/theme-selector-modal';
 import { PresentationStudio } from './studio/presentation-studio';
+import { loadDefaultMobiusModel, DEFAULT_MODEL_NAME } from './renderer/default-model';
+import { I18nManager } from './i18n/i18n-manager';
 
 function initApp(): void {
   const viewport = document.getElementById('presentation-viewport') as HTMLElement;
@@ -23,22 +25,27 @@ function initApp(): void {
     return;
   }
 
-  // 1. Font Manager & Google Fonts Modal
+  // 1. Language & i18n Engine
+  const i18nManager = new I18nManager();
+
+  // 1a. Font Manager & Google Fonts Modal
   const fontManager = new FontManager();
-  const fontModal = new FontSelectorModal(document.body, fontManager);
+  const fontModal = new FontSelectorModal(document.body, fontManager, i18nManager);
 
   // 1b. Color Themes Engine & Theme Modal
   const themeManager = new ThemeManager();
-  const themeModal = new ThemeSelectorModal(document.body, themeManager);
+  const themeModal = new ThemeSelectorModal(document.body, themeManager, i18nManager);
 
-  // 2. Load stored custom slides or fallback to default monograph slides
-  let initialSlides: SlideData[] = SLIDES;
+  // 2. Load stored custom slides or fallback to default monograph slides (in active language)
+  let initialSlides: SlideData[] = i18nManager.getDefaultSlides();
+  let hasStoredCustomSlides = false;
   try {
     const stored = typeof localStorage !== 'undefined' ? localStorage.getItem('objects_in_motion_studio_slides_v1') : null;
     if (stored) {
       const parsed = JSON.parse(stored);
       if (Array.isArray(parsed) && parsed.length > 0 && parsed[0].id) {
         initialSlides = parsed;
+        hasStoredCustomSlides = true;
       }
     }
   } catch (e) {
@@ -47,16 +54,34 @@ function initApp(): void {
 
   // 3. Mount all slide sections
   viewport.innerHTML = initialSlides.map((slide) => renderSlideMarkup(slide, initialSlides.length)).join('');
-  const slideElements = Array.from(viewport.querySelectorAll<HTMLElement>('.slide'));
+  let slideElements = Array.from(viewport.querySelectorAll<HTMLElement>('.slide'));
 
   // 4. Initialize 3D Subject Renderer
   const objectRenderer = new ObjectRenderer(canvas, initialSlides[0].pose);
   objectRenderer.setThemePalette(themeManager.getCurrentTheme().objectPalette);
 
+  // Load default Triple-Twist Möbius Strip GLB model
+  loadDefaultMobiusModel(themeManager.getCurrentTheme().objectPalette).then((res) => {
+    const savedType = typeof localStorage !== 'undefined' ? localStorage.getItem('objects_in_motion_model_type') : null;
+    if (!savedType || savedType === 'default' || savedType === 'mobius_triple') {
+      objectRenderer.setCustomModel(res.mesh, DEFAULT_MODEL_NAME);
+      if (studio) {
+        studio.updateModelBadge(DEFAULT_MODEL_NAME);
+      }
+    }
+  }).catch((err) => {
+    console.warn('Could not load default GLB model:', err);
+  });
+
   themeManager.onThemeChange((theme) => {
     objectRenderer.setThemePalette(theme.objectPalette);
     if (studio) {
       studio.updateTheme(theme);
+    }
+    if (objectRenderer.getCustomModelName() === DEFAULT_MODEL_NAME) {
+      loadDefaultMobiusModel(theme.objectPalette).then((res) => {
+        objectRenderer.setCustomModel(res.mesh, DEFAULT_MODEL_NAME);
+      });
     }
   });
 
@@ -86,7 +111,7 @@ function initApp(): void {
   });
 
   // 6. Initialize Header Controls
-  headerControls = new HeaderControls(headerContainer, controller);
+  headerControls = new HeaderControls(headerContainer, controller, i18nManager);
 
   // 7. Wire action buttons inside closing slide
   const wireClosingActions = () => {
@@ -103,6 +128,34 @@ function initApp(): void {
     });
   };
   wireClosingActions();
+
+  // Helper to re-render slide markup when language changes
+  const reloadSlideMarkup = (slides: SlideData[]) => {
+    viewport.innerHTML = slides.map((slide) => renderSlideMarkup(slide, slides.length)).join('');
+    slideElements = Array.from(viewport.querySelectorAll<HTMLElement>('.slide'));
+    controller.slideElements = slideElements;
+    controller.slides = slides;
+    wireClosingActions();
+    const currentSlide = slides[controller.currentIndex] || slides[0];
+    headerControls.update(currentSlide, controller.currentIndex);
+    objectRenderer.setPose(currentSlide.pose);
+  };
+
+  // Wire Language Switcher Button on Header
+  headerControls.setOnLangClick(() => {
+    const newLang = i18nManager.toggleLanguage();
+    headerControls.updateLanguage(i18nManager);
+    fontModal.updateLanguage(i18nManager);
+    themeModal.updateLanguage(i18nManager);
+    studio.updateLanguage(i18nManager);
+
+    // If using default slides, switch to translated default slides
+    const customStored = typeof localStorage !== 'undefined' ? localStorage.getItem('objects_in_motion_studio_slides_v1') : null;
+    if (!customStored && !hasStoredCustomSlides) {
+      const newSlides = i18nManager.getDefaultSlides(newLang);
+      reloadSlideMarkup(newSlides);
+    }
+  });
 
   // 8. Initialize Presentation Recorder & Panel
   const recorder = new PresentationRecorder({
@@ -138,7 +191,8 @@ function initApp(): void {
     recorder,
     headerControls,
     themeManager,
-    onOpenThemeModal: () => themeModal.open()
+    onOpenThemeModal: () => themeModal.open(),
+    i18n: i18nManager
   });
 
   // Wire Header buttons to open Google Fonts modal, Color Themes modal, and Authoring Studio
@@ -157,7 +211,7 @@ function initApp(): void {
   // 10. Start 3D animation loop
   objectRenderer.start();
 
-  // Expose controller, recorder, studio, and fontManager on window for deterministic testing and automation
+  // Expose controller, recorder, studio, fontManager, themeManager, and i18nManager on window
   if (typeof window !== 'undefined') {
     (window as unknown as { __presentationController: PresentationController }).__presentationController = controller;
     (window as unknown as { __objectRenderer: ObjectRenderer }).__objectRenderer = objectRenderer;
@@ -168,6 +222,7 @@ function initApp(): void {
     (window as unknown as { __fontModal: FontSelectorModal }).__fontModal = fontModal;
     (window as unknown as { __themeManager: ThemeManager }).__themeManager = themeManager;
     (window as unknown as { __themeModal: ThemeSelectorModal }).__themeModal = themeModal;
+    (window as unknown as { __i18nManager: I18nManager }).__i18nManager = i18nManager;
   }
 }
 

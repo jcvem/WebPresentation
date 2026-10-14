@@ -146,33 +146,34 @@ describe('Presentation Controller Navigation & State', () => {
     expect(snapSpy).toHaveBeenCalledWith(false);
   });
 
-  it('should handle keyboard navigation keys', () => {
+  it('should handle keyboard navigation keys (ArrowDown, ArrowUp, R, M) and ignore Space', () => {
     const controller = new PresentationController({
       slides: SLIDES,
       container,
       slideElements
     });
 
+    // ArrowDown navigates to next slide
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
     expect(controller.currentIndex).toBe(1);
 
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'j' }));
-    expect(controller.currentIndex).toBe(2);
-
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp' }));
+    // Space is unbound and should NOT navigate
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: ' ' }));
     expect(controller.currentIndex).toBe(1);
 
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k' }));
+    // ArrowUp navigates to previous slide
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowUp' }));
     expect(controller.currentIndex).toBe(0);
 
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'End' }));
-    expect(controller.currentIndex).toBe(5);
-
-    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'Home' }));
-    expect(controller.currentIndex).toBe(0);
-
+    // R restarts presentation
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'ArrowDown' }));
     window.dispatchEvent(new KeyboardEvent('keydown', { key: 'r' }));
     expect(controller.currentIndex).toBe(0);
+
+    // M toggles reduced motion
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'm' }));
+    expect(controller.isReducedMotion).toBe(true);
+    window.dispatchEvent(new KeyboardEvent('keydown', { key: 'M' }));
+    expect(controller.isReducedMotion).toBe(false);
   });
 });

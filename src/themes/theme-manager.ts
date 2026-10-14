@@ -299,6 +299,17 @@ export class ThemeManager {
       root.style.setProperty('--bg-modal', c.bgModal);
       root.style.setProperty('--bg-modal-backdrop', c.bgModalBackdrop);
       root.style.setProperty('--bg-vignette', c.bgVignette);
+
+      const colorSchemeMeta = document.querySelector('meta[name="color-scheme"]');
+      if (colorSchemeMeta) {
+        colorSchemeMeta.setAttribute('content', theme.mode);
+      }
+
+      // Propagate theme attributes to any open/top-layer modals and drawers
+      document.querySelectorAll('dialog, .control-menu-popover, .studio-inspector-drawer').forEach((el) => {
+        el.setAttribute('data-theme', theme.id);
+        el.setAttribute('data-theme-mode', theme.mode);
+      });
     }
 
     this.listeners.forEach((fn) => fn(this.currentTheme));

@@ -122,7 +122,7 @@ html, body {
   position: absolute;
   left: 50%;
   transform: translateX(-50%);
-  max-width: calc(100vw - 460px);
+  max-width: calc(100vw - 640px);
   pointer-events: none;
   display: flex;
   justify-content: center;
@@ -132,7 +132,7 @@ html, body {
   display: flex;
   align-items: center;
   gap: var(--space-2);
-  font-family: var(--font-mono);
+  font-family: var(--font-control);
   font-size: var(--text-xs);
   color: var(--text-secondary);
   letter-spacing: 0.05em;
@@ -169,33 +169,68 @@ html, body {
 .nav-controls {
   display: flex;
   align-items: center;
-  gap: var(--space-2);
+  gap: 6px;
 }
 
 .btn-ctrl {
-  background: transparent;
+  background: var(--bg-surface);
   border: 1px solid var(--hairline);
   color: var(--text-secondary);
-  font-family: var(--font-mono);
+  font-family: var(--font-control);
   font-size: var(--text-2xs);
   font-weight: 600;
-  letter-spacing: 0.06em;
+  letter-spacing: 0.04em;
   padding: 0 var(--space-3);
   height: 32px;
-  min-width: 44px;
+  min-width: 36px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
   cursor: pointer;
+  border-radius: 2px;
   transition: all var(--transition-fast);
 }
 
 .btn-ctrl:hover {
   color: var(--text-primary);
   border-color: var(--hairline-strong);
+  background: var(--bg-elevated);
 }
 
 .btn-ctrl.active {
   color: var(--accent);
   border-color: var(--hairline-accent);
   background: var(--accent-muted);
+}
+
+.btn-lang {
+  padding: 0 10px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+}
+
+.btn-lang:hover {
+  color: var(--accent);
+  border-color: var(--hairline-accent);
+}
+
+.btn-fonts-bar,
+.btn-colors-bar {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+}
+
+.ctrl-icon-txt {
+  font-size: 13px;
+  line-height: 1;
+}
+
+@media (max-width: 960px) {
+  .ctrl-btn-label {
+    display: none;
+  }
 }
 
 .nav-arrows {
@@ -414,13 +449,15 @@ html, body {
   display: flex;
   align-items: flex-start;
   gap: var(--space-4);
-  padding: var(--space-3);
-  background: rgba(17, 19, 23, 0.45);
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-surface);
   border: 1px solid var(--hairline);
+  border-radius: 2px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
 }
 
 .step-num {
-  font-family: var(--font-mono);
+  font-family: var(--font-control);
   font-size: var(--text-xs);
   font-weight: 600;
   color: var(--accent);
@@ -455,13 +492,16 @@ html, body {
   align-items: flex-start;
   gap: var(--space-3);
   padding: var(--space-3) var(--space-4);
-  background: rgba(17, 19, 23, 0.55);
+  background: var(--bg-surface);
   border: 1px solid var(--hairline);
-  transition: border-color var(--transition-fast);
+  border-radius: 2px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
+  transition: border-color var(--transition-fast), background-color var(--transition-fast);
 }
 
 .system-part-card:hover {
   border-color: var(--hairline-strong);
+  background: var(--bg-elevated);
 }
 
 .part-badge {
@@ -473,10 +513,11 @@ html, body {
   background: var(--accent-muted);
   border: 1px solid var(--hairline-accent);
   color: var(--accent);
-  font-family: var(--font-mono);
+  font-family: var(--font-control);
   font-size: var(--text-xs);
   font-weight: 700;
   flex-shrink: 0;
+  border-radius: 2px;
 }
 
 .part-name {
@@ -497,8 +538,11 @@ html, body {
 /* Slide 5 & 6: Takeaways & Actions */
 .slide-takeaway-block {
   padding: var(--space-4);
-  background: rgba(17, 19, 23, 0.4);
-  border-left: 2px solid var(--hairline-strong);
+  background: var(--bg-surface);
+  border: 1px solid var(--hairline);
+  border-left: 3px solid var(--accent);
+  border-radius: 2px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.04);
 }
 
 .takeaway-text {
@@ -522,7 +566,7 @@ html, body {
   height: 48px;
   min-height: 44px;
   min-width: 44px;
-  font-family: var(--font-mono);
+  font-family: var(--font-control);
   font-size: var(--text-xs);
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -530,6 +574,7 @@ html, body {
   cursor: pointer;
   transition: all var(--transition-fast);
   border: 1px solid transparent;
+  border-radius: 2px;
 }
 
 .action-btn-primary {
@@ -611,17 +656,20 @@ html, body {
 /* 5. Shortcuts Dialog */
 .keys-dialog {
   margin: auto;
-  background: var(--bg-surface);
+  background: var(--bg-modal);
   border: 1px solid var(--hairline-strong);
   color: var(--text-primary);
   padding: 0;
   max-width: 440px;
   width: 90%;
-  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.8);
+  border-radius: 4px;
+  box-shadow: 0 16px 40px rgba(0, 0, 0, 0.4), 0 0 0 1px var(--hairline);
 }
 
 .keys-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.7);
+  background: var(--bg-modal-backdrop);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
 }
 
 .dialog-content {
@@ -680,14 +728,15 @@ html, body {
   background: var(--bg-elevated);
   border: 1px solid var(--hairline-strong);
   color: var(--text-primary);
-  font-family: var(--font-mono);
+  font-family: var(--font-control);
   font-size: var(--text-xs);
   padding: 2px 6px;
   margin: 0 2px;
+  border-radius: 2px;
 }
 
 .shortcut-item dd {
-  font-family: var(--font-mono);
+  font-family: var(--font-control);
   font-size: var(--text-xs);
   color: var(--text-tertiary);
 }
@@ -695,7 +744,7 @@ html, body {
 .dialog-note {
   font-size: var(--text-xs);
   color: var(--text-tertiary);
-  font-family: var(--font-mono);
+  font-family: var(--font-control);
   text-align: center;
 }
 

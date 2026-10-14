@@ -8,6 +8,7 @@ import { parseOBJ, createIcosahedronPreset, createTorusKnotPreset, createMobiusS
 import { parseGLB } from '../renderer/glb-loader';
 import { MeshData } from '../renderer/geometry';
 import { ThemeManager, ColorTheme } from '../themes/theme-manager';
+import { loadDefaultMobiusModel, DEFAULT_MODEL_NAME } from '../renderer/default-model';
 
 const STORAGE_KEY = 'objects_in_motion_studio_slides_v1';
 const MODEL_TYPE_STORAGE_KEY = 'objects_in_motion_model_type';
@@ -117,6 +118,8 @@ export class PresentationStudio {
   private themeManager?: ThemeManager;
   private onOpenThemeModal?: () => void;
 
+  private i18n?: import('../i18n/i18n-manager').I18nManager;
+
   constructor(options: {
     viewport: HTMLElement;
     controller: PresentationController;
@@ -125,6 +128,7 @@ export class PresentationStudio {
     headerControls: HeaderControls;
     themeManager?: ThemeManager;
     onOpenThemeModal?: () => void;
+    i18n?: import('../i18n/i18n-manager').I18nManager;
   }) {
     this.viewport = options.viewport;
     this.controller = options.controller;
@@ -133,12 +137,16 @@ export class PresentationStudio {
     this.headerControls = options.headerControls;
     this.themeManager = options.themeManager;
     this.onOpenThemeModal = options.onOpenThemeModal;
+    this.i18n = options.i18n;
 
     this.slides = this.loadSlides();
     this.createStudioUI();
     this.createFileInput();
     this.initModelSelection();
     this.initThemeSelection();
+    if (this.i18n) {
+      this.updateLanguage(this.i18n);
+    }
   }
 
   public getSlides(): SlideData[] {
@@ -279,7 +287,11 @@ export class PresentationStudio {
         if (bodyEl && bodyEl.textContent !== value) bodyEl.textContent = value as string;
       } else if (field === 'takeaway') {
         const takeEl = slideEl.querySelector('.takeaway-text');
-        if (takeEl && takeEl.textContent !== value) takeEl.textContent = value as string;
+        if (takeEl && takeEl.textContent !== value) {
+          takeEl.textContent = value as string;
+        } else if (!takeEl && value) {
+          this.updateSlidesAndDOM(true);
+        }
       } else {
         // Fallback for structural elements (sequence, components, metadata)
         this.updateSlidesAndDOM(true);
@@ -379,21 +391,23 @@ export class PresentationStudio {
 
   public resetToDefaultTemplate(): void {
     if (confirm('Reset presentation to original template? All custom text will be replaced.')) {
-      this.slides = JSON.parse(JSON.stringify(SLIDES));
+      this.slides = this.i18n ? this.i18n.getDefaultSlides() : JSON.parse(JSON.stringify(SLIDES));
       if (typeof localStorage !== 'undefined') {
         localStorage.removeItem(STORAGE_KEY);
         localStorage.removeItem(MODEL_TYPE_STORAGE_KEY);
         localStorage.removeItem(CUSTOM_OBJ_TEXT_KEY);
         localStorage.removeItem(CUSTOM_OBJ_NAME_KEY);
       }
-      this.objectRenderer.setCustomModel(null, 'Kinetic Armillary');
+      loadDefaultMobiusModel(this.themeManager?.getCurrentTheme().objectPalette).then((res) => {
+        this.objectRenderer.setCustomModel(res.mesh, DEFAULT_MODEL_NAME);
+      });
       const modelSelect = this.studioDrawer?.querySelector('#sel-model-preset') as HTMLSelectElement;
-      if (modelSelect) modelSelect.value = 'armillary';
+      if (modelSelect) modelSelect.value = 'default';
       const uploadContainer = this.studioDrawer?.querySelector('#obj-upload-container') as HTMLElement;
       if (uploadContainer) uploadContainer.style.display = 'none';
       const metaContainer = this.studioDrawer?.querySelector('#custom-model-meta') as HTMLElement;
       if (metaContainer) metaContainer.style.display = 'none';
-      this.updateModelBadge('Kinetic Armillary');
+      this.updateModelBadge(DEFAULT_MODEL_NAME);
 
       this.controller.currentIndex = 0;
       this.updateSlidesAndDOM(false);
@@ -574,22 +588,56 @@ export class PresentationStudio {
               <label for="inp-slide-takeaway">KEY TAKEAWAY / CALLOUT (OPTIONAL)</label>
               <textarea id="inp-slide-takeaway" class="studio-textarea" rows="2" placeholder="Summary conclusion..."></textarea>
             </div>
+
+            <!-- Dynamic Sequence Steps Editor (Slide 3) -->
+            <div id="studio-sequence-section" class="studio-components-section" style="display: none;">
+              <div class="section-sub-header">
+                <span class="sub-header-title">SEQUENCE STEPS (SLIDE 3)</span>
+              </div>
+              <div id="sequence-items-container" class="components-items-container"></div>
+            </div>
+
+            <!-- Dynamic Components Editor (Slide 4 assemblies) -->
+            <div id="studio-components-section" class="studio-components-section" style="display: none;">
+              <div class="section-sub-header">
+                <span class="sub-header-title">CONSTITUENT ASSEMBLIES (SLIDE 4)</span>
+              </div>
+              <div id="components-items-container" class="components-items-container"></div>
+            </div>
+
+            <!-- Dynamic Actions Editor (Slide 6 CTA buttons) -->
+            <div id="studio-actions-section" class="studio-actions-section" style="display: none;">
+              <div class="section-sub-header">
+                <span class="sub-header-title">CALL TO ACTION BUTTONS (SLIDE 6)</span>
+              </div>
+              <div class="actions-inputs-grid">
+                <div class="action-edit-field">
+                  <label for="inp-action-primary">PRIMARY ACTION LABEL</label>
+                  <input type="text" id="inp-action-primary" class="action-edit-inp" placeholder="Restart Presentation" />
+                </div>
+                <div class="action-edit-field">
+                  <label for="inp-action-secondary">SECONDARY ACTION LABEL</label>
+                  <input type="text" id="inp-action-secondary" class="action-edit-inp" placeholder="Toggle Free Scroll" />
+                </div>
+              </div>
+            </div>
           </section>
 
           <!-- Section: 3D Model & Custom OBJ Swapper -->
           <section class="studio-section studio-model-section">
             <div class="section-header-row">
               <h4 class="studio-section-title">3D MODEL & GEOMETRY</h4>
-              <span class="model-active-badge" id="studio-model-badge">Kinetic Armillary</span>
+              <span class="model-active-badge" id="studio-model-badge">Triple-Twist Möbius Strip</span>
             </div>
 
             <div class="studio-field">
               <label for="sel-model-preset">GEOMETRY SELECTION</label>
               <select id="sel-model-preset" class="studio-select">
-                <option value="armillary">Default: Kinetic Armillary Artifact</option>
+                <option value="default">Default: Triple-Twist Möbius Strip (.glb)</option>
                 <option value="mobius">Preset: Möbius Strip (Topological Ribbon)</option>
                 <option value="torusknot">Preset: Torus Knot Sculpture</option>
                 <option value="icosahedron">Preset: Icosahedron Crystal Prism</option>
+                <option value="armillary">Preset: Kinetic Armillary Artifact</option>
                 <option value="custom">Custom 3D Model (.obj, .glb)...</option>
               </select>
             </div>
@@ -773,6 +821,40 @@ export class PresentationStudio {
     bodyInp?.addEventListener('input', () => this.updateCurrentSlideField('body', bodyInp.value));
     takeInp?.addEventListener('input', () => this.updateCurrentSlideField('takeaway', takeInp.value));
 
+    // Action CTA inputs
+    const actPrimaryInp = this.studioDrawer.querySelector('#inp-action-primary') as HTMLInputElement;
+    const actSecondaryInp = this.studioDrawer.querySelector('#inp-action-secondary') as HTMLInputElement;
+
+    actPrimaryInp?.addEventListener('input', () => {
+      const idx = this.controller.currentIndex;
+      const slide = this.slides[idx];
+      if (slide && slide.action) {
+        slide.action.primaryText = actPrimaryInp.value;
+        this.saveSlides();
+        const slideEl = this.viewport.querySelectorAll<HTMLElement>('.slide')[idx];
+        const btn = slideEl?.querySelector('#btn-restart-action');
+        if (btn) {
+          const svg = btn.querySelector('svg');
+          btn.innerHTML = (svg ? svg.outerHTML + ' ' : '') + actPrimaryInp.value;
+        }
+      }
+    });
+
+    actSecondaryInp?.addEventListener('input', () => {
+      const idx = this.controller.currentIndex;
+      const slide = this.slides[idx];
+      if (slide && slide.action) {
+        slide.action.secondaryText = actSecondaryInp.value;
+        this.saveSlides();
+        const slideEl = this.viewport.querySelectorAll<HTMLElement>('.slide')[idx];
+        const btn = slideEl?.querySelector('#btn-free-scroll-action');
+        if (btn) {
+          const svg = btn.querySelector('svg');
+          btn.innerHTML = (svg ? svg.outerHTML + ' ' : '') + actSecondaryInp.value;
+        }
+      }
+    });
+
     // Preset selector
     const presetSelect = this.studioDrawer.querySelector('#sel-pose-preset') as HTMLSelectElement;
     presetSelect?.addEventListener('change', () => {
@@ -879,7 +961,15 @@ export class PresentationStudio {
 
     modelSelect?.addEventListener('change', () => {
       const mode = modelSelect.value;
-      if (mode === 'armillary') {
+      if (mode === 'default') {
+        loadDefaultMobiusModel(this.themeManager?.getCurrentTheme().objectPalette).then((res) => {
+          this.objectRenderer.setCustomModel(res.mesh, DEFAULT_MODEL_NAME);
+        });
+        localStorage.setItem(MODEL_TYPE_STORAGE_KEY, 'default');
+        if (uploadContainer) uploadContainer.style.display = 'none';
+        this.updateModelBadge(DEFAULT_MODEL_NAME);
+        this.showToast('Swapped to Default: Triple-Twist Möbius Strip (.glb)');
+      } else if (mode === 'armillary') {
         this.objectRenderer.setCustomModel(null, 'Kinetic Armillary');
         localStorage.setItem(MODEL_TYPE_STORAGE_KEY, 'armillary');
         if (uploadContainer) uploadContainer.style.display = 'none';
@@ -945,13 +1035,15 @@ export class PresentationStudio {
     });
 
     removeModelBtn?.addEventListener('click', () => {
-      if (modelSelect) modelSelect.value = 'armillary';
-      this.objectRenderer.setCustomModel(null, 'Kinetic Armillary');
-      localStorage.setItem(MODEL_TYPE_STORAGE_KEY, 'armillary');
+      if (modelSelect) modelSelect.value = 'default';
+      loadDefaultMobiusModel(this.themeManager?.getCurrentTheme().objectPalette).then((res) => {
+        this.objectRenderer.setCustomModel(res.mesh, DEFAULT_MODEL_NAME);
+      });
+      localStorage.setItem(MODEL_TYPE_STORAGE_KEY, 'default');
       if (uploadContainer) uploadContainer.style.display = 'none';
       if (metaContainer) metaContainer.style.display = 'none';
-      this.updateModelBadge('Kinetic Armillary');
-      this.showToast('Reverted to Kinetic Armillary');
+      this.updateModelBadge(DEFAULT_MODEL_NAME);
+      this.showToast(`Reverted to default ${DEFAULT_MODEL_NAME}`);
     });
   }
 
@@ -975,11 +1067,21 @@ export class PresentationStudio {
   private initModelSelection(): void {
     if (typeof localStorage === 'undefined') return;
     try {
-      const savedType = localStorage.getItem(MODEL_TYPE_STORAGE_KEY) || 'armillary';
+      const savedType = localStorage.getItem(MODEL_TYPE_STORAGE_KEY) || 'default';
       const modelSelect = this.studioDrawer?.querySelector('#sel-model-preset') as HTMLSelectElement;
       const uploadContainer = this.studioDrawer?.querySelector('#obj-upload-container') as HTMLElement;
 
-      if (savedType === 'mobius') {
+      if (savedType === 'default' || savedType === 'mobius_triple') {
+        loadDefaultMobiusModel(this.themeManager?.getCurrentTheme().objectPalette).then((res) => {
+          this.objectRenderer.setCustomModel(res.mesh, DEFAULT_MODEL_NAME);
+        });
+        if (modelSelect) modelSelect.value = 'default';
+        this.updateModelBadge(DEFAULT_MODEL_NAME);
+      } else if (savedType === 'armillary') {
+        this.objectRenderer.setCustomModel(null, 'Kinetic Armillary');
+        if (modelSelect) modelSelect.value = 'armillary';
+        this.updateModelBadge('Kinetic Armillary');
+      } else if (savedType === 'mobius') {
         this.objectRenderer.setCustomModel(createMobiusStripPreset(), 'Möbius Strip');
         if (modelSelect) modelSelect.value = 'mobius';
         this.updateModelBadge('Möbius Strip');
@@ -1036,6 +1138,33 @@ export class PresentationStudio {
     const select = this.studioDrawer.querySelector('#sel-studio-theme') as HTMLSelectElement;
     if (badge) badge.textContent = theme.name;
     if (select) select.value = theme.id;
+  }
+
+  public updateLanguage(i18n: import('../i18n/i18n-manager').I18nManager): void {
+    this.i18n = i18n;
+    if (!this.studioDrawer) return;
+
+    const isZh = i18n.isZh();
+    const badge = this.studioDrawer.querySelector('.studio-badge');
+    if (badge) badge.textContent = i18n.t('studioBadge');
+
+    const heading = this.studioDrawer.querySelector('.studio-heading');
+    if (heading) heading.textContent = i18n.t('studioHeading');
+
+    const genBtn = this.studioDrawer.querySelector('#btn-studio-generate');
+    if (genBtn) genBtn.textContent = isZh ? '▶ 產出並展示' : '▶ GENERATE & PRESENT';
+
+    const resetBtn = this.studioDrawer.querySelector('#btn-reset-default');
+    if (resetBtn) resetBtn.textContent = i18n.t('btnResetDefault');
+
+    const exportBtn = this.studioDrawer.querySelector('#btn-export-deck');
+    if (exportBtn) exportBtn.textContent = i18n.t('btnExportJSON');
+
+    const importBtn = this.studioDrawer.querySelector('#btn-import-deck');
+    if (importBtn) importBtn.textContent = i18n.t('btnImportJSON');
+
+    this.renderSlideTabs();
+    this.syncInspectorForm(this.controller.currentIndex);
   }
 
   private bindSlider(sliderId: string, valueId: string, poseKey: keyof ObjectPose): void {
@@ -1112,6 +1241,15 @@ export class PresentationStudio {
 
     // Update meta inputs
     this.renderMetaInputs(slide);
+
+    // Update components inputs (Slide 4)
+    this.renderComponentsInputs(slide);
+
+    // Update sequence inputs (Slide 3)
+    this.renderSequenceInputs(slide);
+
+    // Update action inputs (Slide 6)
+    this.renderActionInputs(slide);
 
     // Highlight active tab
     const tabs = this.studioDrawer.querySelectorAll('.studio-tab-btn');
@@ -1194,6 +1332,139 @@ export class PresentationStudio {
         }
       });
     });
+  }
+
+  private renderComponentsInputs(slide: SlideData): void {
+    if (!this.studioDrawer) return;
+    const section = this.studioDrawer.querySelector('#studio-components-section') as HTMLElement;
+    const container = this.studioDrawer.querySelector('#components-items-container') as HTMLElement;
+    if (!section || !container) return;
+
+    if (!slide.components || slide.components.length === 0) {
+      section.style.display = 'none';
+      container.innerHTML = '';
+      return;
+    }
+
+    section.style.display = 'flex';
+    container.innerHTML = slide.components
+      .map(
+        (c, i) => `
+        <div class="comp-edit-card" data-comp-index="${i}">
+          <div class="comp-edit-header">
+            <span class="comp-edit-tag">${c.tag}</span>
+            <input type="text" class="comp-inp-name" value="${c.name}" placeholder="Component Name" />
+          </div>
+          <textarea class="comp-inp-desc" rows="2" placeholder="Component Description">${c.description}</textarea>
+        </div>
+      `
+      )
+      .join('');
+
+    container.querySelectorAll('.comp-edit-card').forEach((card) => {
+      const idx = parseInt((card as HTMLElement).dataset.compIndex || '0', 10);
+      const nameInp = card.querySelector('.comp-inp-name') as HTMLInputElement;
+      const descInp = card.querySelector('.comp-inp-desc') as HTMLTextAreaElement;
+
+      nameInp?.addEventListener('input', () => {
+        if (slide.components && slide.components[idx]) {
+          slide.components[idx].name = nameInp.value;
+          this.saveSlides();
+          const slideEl = this.viewport.querySelectorAll<HTMLElement>('.slide')[this.controller.currentIndex];
+          const partCard = slideEl?.querySelector(`.system-part-card[data-tag="${slide.components[idx].tag}"]`);
+          const nameEl = partCard?.querySelector('.part-name');
+          if (nameEl) nameEl.textContent = nameInp.value;
+        }
+      });
+
+      descInp?.addEventListener('input', () => {
+        if (slide.components && slide.components[idx]) {
+          slide.components[idx].description = descInp.value;
+          this.saveSlides();
+          const slideEl = this.viewport.querySelectorAll<HTMLElement>('.slide')[this.controller.currentIndex];
+          const partCard = slideEl?.querySelector(`.system-part-card[data-tag="${slide.components[idx].tag}"]`);
+          const descEl = partCard?.querySelector('.part-desc');
+          if (descEl) descEl.textContent = descInp.value;
+        }
+      });
+    });
+  }
+
+  private renderSequenceInputs(slide: SlideData): void {
+    if (!this.studioDrawer) return;
+    const section = this.studioDrawer.querySelector('#studio-sequence-section') as HTMLElement;
+    const container = this.studioDrawer.querySelector('#sequence-items-container') as HTMLElement;
+    if (!section || !container) return;
+
+    if (!slide.sequence || slide.sequence.length === 0) {
+      section.style.display = 'none';
+      container.innerHTML = '';
+      return;
+    }
+
+    section.style.display = 'flex';
+    container.innerHTML = slide.sequence
+      .map(
+        (s, i) => `
+        <div class="comp-edit-card" data-seq-index="${i}">
+          <div class="comp-edit-header">
+            <span class="comp-edit-tag">${s.index}</span>
+            <input type="text" class="comp-inp-name" value="${s.title}" placeholder="Step Title" />
+          </div>
+          <textarea class="comp-inp-desc" rows="2" placeholder="Step Detail">${s.detail}</textarea>
+        </div>
+      `
+      )
+      .join('');
+
+    container.querySelectorAll('.comp-edit-card').forEach((card) => {
+      const idx = parseInt((card as HTMLElement).dataset.seqIndex || '0', 10);
+      const titleInp = card.querySelector('.comp-inp-name') as HTMLInputElement;
+      const detailInp = card.querySelector('.comp-inp-desc') as HTMLTextAreaElement;
+
+      titleInp?.addEventListener('input', () => {
+        if (slide.sequence && slide.sequence[idx]) {
+          slide.sequence[idx].title = titleInp.value;
+          this.saveSlides();
+          const slideEl = this.viewport.querySelectorAll<HTMLElement>('.slide')[this.controller.currentIndex];
+          const stepItems = slideEl?.querySelectorAll('.sequence-step');
+          if (stepItems && stepItems[idx]) {
+            const titleEl = stepItems[idx].querySelector('.step-title');
+            if (titleEl) titleEl.textContent = titleInp.value;
+          }
+        }
+      });
+
+      detailInp?.addEventListener('input', () => {
+        if (slide.sequence && slide.sequence[idx]) {
+          slide.sequence[idx].detail = detailInp.value;
+          this.saveSlides();
+          const slideEl = this.viewport.querySelectorAll<HTMLElement>('.slide')[this.controller.currentIndex];
+          const stepItems = slideEl?.querySelectorAll('.sequence-step');
+          if (stepItems && stepItems[idx]) {
+            const detailEl = stepItems[idx].querySelector('.step-detail');
+            if (detailEl) detailEl.textContent = detailInp.value;
+          }
+        }
+      });
+    });
+  }
+
+  private renderActionInputs(slide: SlideData): void {
+    if (!this.studioDrawer) return;
+    const section = this.studioDrawer.querySelector('#studio-actions-section') as HTMLElement;
+    const priInp = this.studioDrawer.querySelector('#inp-action-primary') as HTMLInputElement;
+    const secInp = this.studioDrawer.querySelector('#inp-action-secondary') as HTMLInputElement;
+    if (!section || !priInp || !secInp) return;
+
+    if (!slide.action) {
+      section.style.display = 'none';
+      return;
+    }
+
+    section.style.display = 'flex';
+    priInp.value = slide.action.primaryText || '';
+    secInp.value = slide.action.secondaryText || '';
   }
 
   private showToast(message: string): void {

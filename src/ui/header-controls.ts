@@ -1,9 +1,11 @@
 import { SlideData } from '../slides/slide-data';
 import { PresentationController } from '../controller/presentation-controller';
+import { I18nManager } from '../i18n/i18n-manager';
 
 export class HeaderControls {
   private container: HTMLElement;
   private controller: PresentationController;
+  private i18n?: I18nManager;
 
   private counterEl: HTMLElement | null = null;
   private titleEl: HTMLElement | null = null;
@@ -19,29 +21,44 @@ export class HeaderControls {
   private fontBtn: HTMLButtonElement | null = null;
   private themeBtn: HTMLButtonElement | null = null;
   private studioBtn: HTMLButtonElement | null = null;
+  private langBtn: HTMLButtonElement | null = null;
   private controlToggleBtn: HTMLButtonElement | null = null;
   private controlPopoverEl: HTMLElement | null = null;
   private onFontsClick?: () => void;
   private onThemeClick?: () => void;
   private onStudioClick?: () => void;
+  private onLangClick?: () => void;
 
-  constructor(container: HTMLElement, controller: PresentationController) {
+  constructor(container: HTMLElement, controller: PresentationController, i18n?: I18nManager) {
     this.container = container;
     this.controller = controller;
+    this.i18n = i18n;
 
     this.render();
     this.bindEvents();
     this.update(this.controller.slides[0], 0);
+
+    if (this.i18n) {
+      this.updateLanguage(this.i18n);
+    }
   }
 
   private render(): void {
+    const isZh = this.i18n?.isZh() ?? false;
+    const langLabel = isZh ? 'EN' : '繁中';
+    const fontsLabel = isZh ? '字型' : 'FONTS';
+    const themeLabel = isZh ? '色彩' : 'COLORS';
+    const controlLabel = isZh ? '控制' : 'CONTROL';
+    const brandName = isZh ? '動態物件' : 'SUBJECTS IN MOTION';
+    const brandSub = isZh ? '由 / VEM 工作室' : 'by / VEM Studio';
+
     this.container.innerHTML = `
       <header class="site-header" role="banner">
         <div class="header-left">
           <div class="brand-monogram">
             <span class="brand-dot"></span>
-            <span class="brand-name">SUBJECTS IN MOTION</span>
-            <span class="brand-sub">by / VEM Studio</span>
+            <span class="brand-name" id="hdr-brand-name">${brandName}</span>
+            <span class="brand-sub" id="hdr-brand-sub">${brandSub}</span>
           </div>
         </div>
 
@@ -55,6 +72,38 @@ export class HeaderControls {
 
         <div class="header-right">
           <nav class="nav-controls" aria-label="Presentation controls">
+            <!-- Language Switcher Button directly on Top Bar -->
+            <button 
+              type="button" 
+              class="btn-ctrl btn-lang" 
+              id="btn-hdr-lang" 
+              title="Switch language / 切換語言" 
+              aria-label="Toggle language between English and Traditional Chinese">
+              <span class="ctrl-icon-txt" id="hdr-lang-txt">${langLabel}</span>
+            </button>
+
+            <!-- Fonts Palette Button directly on Top Bar -->
+            <button 
+              type="button" 
+              class="btn-ctrl btn-fonts-bar" 
+              id="btn-hdr-fonts" 
+              title="Select Google Fonts typography" 
+              aria-label="Select typography palette">
+              <span class="ctrl-icon-txt">Aa</span>
+              <span class="ctrl-btn-label" id="hdr-fonts-label">${fontsLabel}</span>
+            </button>
+
+            <!-- Color Themes Button directly on Top Bar -->
+            <button 
+              type="button" 
+              class="btn-ctrl btn-colors-bar" 
+              id="btn-hdr-theme" 
+              title="Select Color Themes and palettes" 
+              aria-label="Select color theme palette">
+              <span class="ctrl-icon-txt">🎨</span>
+              <span class="ctrl-btn-label" id="hdr-theme-label">${themeLabel}</span>
+            </button>
+
             <!-- Consolidated CONTROL dropdown menu -->
             <div class="control-menu-container">
               <button 
@@ -70,7 +119,7 @@ export class HeaderControls {
                   <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1-2.83 2.83l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-4 0v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1 0-4h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 2.83-2.83l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 4 0v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 0 4h-.09a1.65 1.65 0 0 0-1.51 1Z"/>
                 </svg>
                 <span class="ctrl-rec-pulse" id="ctrl-rec-pulse" style="display:none;" aria-hidden="true"></span>
-                <span>CONTROL</span>
+                <span id="hdr-control-label">${controlLabel}</span>
                 <svg class="ctrl-chevron" width="8" height="8" viewBox="0 0 8 8" aria-hidden="true">
                   <path d="M1.5 2.5L4 5L6.5 2.5" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/>
                 </svg>
@@ -78,40 +127,40 @@ export class HeaderControls {
 
               <div class="control-menu-popover" id="control-menu-popover" role="menu" aria-label="Controls and settings menu">
                 <div class="menu-group">
-                  <div class="menu-group-header">DESIGN & AUTHORING</div>
+                  <div class="menu-group-header" id="menu-grp-design">DESIGN & AUTHORING</div>
                   <button type="button" class="ctrl-menu-item btn-studio" id="btn-hdr-studio" role="menuitem" aria-pressed="false" title="Open Presentation Authoring Studio">
                     <span class="ctrl-menu-icon">✏️</span>
-                    <span class="ctrl-menu-title">STUDIO MAKER</span>
+                    <span class="ctrl-menu-title" id="menu-title-studio">STUDIO MAKER</span>
                     <span class="ctrl-menu-badge" id="menu-studio-badge">OFF</span>
                   </button>
-                  <button type="button" class="ctrl-menu-item btn-fonts" id="btn-hdr-fonts" role="menuitem" title="Select Google Fonts typography">
+                  <button type="button" class="ctrl-menu-item btn-fonts" id="btn-menu-fonts" role="menuitem" title="Select Google Fonts typography">
                     <span class="ctrl-menu-icon">Aa</span>
-                    <span class="ctrl-menu-title">FONTS PALETTE</span>
+                    <span class="ctrl-menu-title" id="menu-title-fonts">FONTS PALETTE</span>
                     <span class="ctrl-menu-hint">Google Fonts</span>
                   </button>
-                  <button type="button" class="ctrl-menu-item btn-theme" id="btn-hdr-theme" role="menuitem" title="Select Color Themes and palettes">
+                  <button type="button" class="ctrl-menu-item btn-theme" id="btn-menu-theme" role="menuitem" title="Select Color Themes and palettes">
                     <span class="ctrl-menu-icon">🎨</span>
-                    <span class="ctrl-menu-title">COLOR THEMES</span>
+                    <span class="ctrl-menu-title" id="menu-title-theme">COLOR THEMES</span>
                     <span class="ctrl-menu-hint">Obsidian, Cobalt...</span>
                   </button>
                 </div>
 
                 <div class="menu-group">
-                  <div class="menu-group-header">NAVIGATION & MOTION</div>
+                  <div class="menu-group-header" id="menu-grp-nav">NAVIGATION & MOTION</div>
                   <button type="button" class="ctrl-menu-item btn-snap" id="btn-hdr-snap" role="menuitem" title="Toggle scroll snap" aria-pressed="true">
                     <span class="ctrl-menu-icon">⚡</span>
-                    <span class="ctrl-menu-title">SNAP: ON</span>
-                    <span class="ctrl-menu-hint">Page Snapping</span>
+                    <span class="ctrl-menu-title" id="menu-title-snap">SNAP: ON</span>
+                    <span class="ctrl-menu-hint" id="menu-hint-snap">Page Snapping</span>
                   </button>
                   <button type="button" class="ctrl-menu-item btn-motion" id="btn-hdr-motion" role="menuitem" title="Toggle reduced motion" aria-pressed="false">
                     <span class="ctrl-menu-icon">〰️</span>
-                    <span class="ctrl-menu-title">MOTION: FLUID</span>
-                    <span class="ctrl-menu-hint">WebGL Kinetic</span>
+                    <span class="ctrl-menu-title" id="menu-title-motion">MOTION: FLUID</span>
+                    <span class="ctrl-menu-hint" id="menu-hint-motion">WebGL Kinetic</span>
                   </button>
                 </div>
 
                 <div class="menu-group menu-group-recording">
-                  <div class="menu-group-header">RECORDING</div>
+                  <div class="menu-group-header" id="menu-grp-rec">RECORDING</div>
                   <button type="button" class="ctrl-menu-item btn-record" id="btn-hdr-record" role="menuitem" aria-label="Record presentation" title="Record presentation to short video">
                     <span class="ctrl-menu-icon rec-icon">
                       <svg width="10" height="10" viewBox="0 0 10 10" aria-hidden="true"><circle cx="5" cy="5" r="4" fill="currentColor"/></svg>
@@ -119,7 +168,7 @@ export class HeaderControls {
                     <span class="ctrl-menu-title" id="rec-btn-label">Record presentation</span>
                   </button>
                   <div class="menu-row-duration">
-                    <span class="menu-duration-label">Slide Pace:</span>
+                    <span class="menu-duration-label" id="menu-duration-label">Slide Pace:</span>
                     <select id="record-duration-select" class="select-duration" aria-label="Slide duration for recording" title="Slide duration">
                       <option value="3500">3.5s (Default)</option>
                       <option value="5000">5.0s (Paced)</option>
@@ -156,7 +205,7 @@ export class HeaderControls {
                 <div class="menu-group menu-group-footer">
                   <button type="button" class="ctrl-menu-item btn-keys" id="btn-hdr-keys" role="menuitem" title="View keyboard shortcuts" aria-haspopup="dialog">
                     <span class="ctrl-menu-icon">⌨️</span>
-                    <span class="ctrl-menu-title">KEYBOARD SHORTCUTS</span>
+                    <span class="ctrl-menu-title" id="menu-title-keys">KEYBOARD SHORTCUTS</span>
                   </button>
                 </div>
               </div>
@@ -188,18 +237,16 @@ export class HeaderControls {
       <dialog class="keys-dialog" id="keys-dialog" aria-label="Keyboard navigation guide">
         <div class="dialog-content">
           <div class="dialog-header">
-            <h3>KEYBOARD SHORTCUTS</h3>
+            <h3 id="keys-dialog-heading">KEYBOARD SHORTCUTS</h3>
             <button type="button" class="dialog-close" id="dialog-close" aria-label="Close shortcuts dialog">✕</button>
           </div>
-          <dl class="shortcut-list">
-            <div class="shortcut-item"><dt><kbd>↓</kbd> / <kbd>Space</kbd> / <kbd>j</kbd></dt><dd>Next slide</dd></div>
-            <div class="shortcut-item"><dt><kbd>↑</kbd> / <kbd>Shift+Space</kbd> / <kbd>k</kbd></dt><dd>Previous slide</dd></div>
-            <div class="shortcut-item"><dt><kbd>Home</kbd></dt><dd>First slide</dd></div>
-            <div class="shortcut-item"><dt><kbd>End</kbd></dt><dd>Last slide</dd></div>
-            <div class="shortcut-item"><dt><kbd>r</kbd></dt><dd>Restart presentation</dd></div>
-            <div class="shortcut-item"><dt><kbd>m</kbd></dt><dd>Toggle reduced motion</dd></div>
+          <dl class="shortcut-list" id="shortcut-list-el">
+            <div class="shortcut-item"><dt><kbd>↓</kbd></dt><dd id="sc-next">Next slide</dd></div>
+            <div class="shortcut-item"><dt><kbd>↑</kbd></dt><dd id="sc-prev">Previous slide</dd></div>
+            <div class="shortcut-item"><dt><kbd>r</kbd> / <kbd>R</kbd></dt><dd id="sc-restart">Restart presentation</dd></div>
+            <div class="shortcut-item"><dt><kbd>m</kbd> / <kbd>M</kbd></dt><dd id="sc-motion">Toggle reduced motion</dd></div>
           </dl>
-          <p class="dialog-note">Press <kbd>Esc</kbd> to close.</p>
+          <p class="dialog-note" id="sc-note">Press <kbd>Esc</kbd> to close.</p>
         </div>
       </dialog>
     `;
@@ -218,6 +265,7 @@ export class HeaderControls {
     this.fontBtn = this.container.querySelector('#btn-hdr-fonts');
     this.themeBtn = this.container.querySelector('#btn-hdr-theme');
     this.studioBtn = this.container.querySelector('#btn-hdr-studio');
+    this.langBtn = this.container.querySelector('#btn-hdr-lang');
     this.controlToggleBtn = this.container.querySelector('#btn-hdr-control');
     this.controlPopoverEl = this.container.querySelector('#control-menu-popover');
   }
@@ -263,12 +311,30 @@ export class HeaderControls {
       this.updateMotionState();
     });
 
+    this.langBtn?.addEventListener('click', () => {
+      this.onLangClick?.();
+    });
+
+    // Top-bar Fonts button
     this.fontBtn?.addEventListener('click', () => {
       toggleControlMenu(false);
       this.onFontsClick?.();
     });
 
+    // In-menu Fonts item fallback
+    this.container.querySelector('#btn-menu-fonts')?.addEventListener('click', () => {
+      toggleControlMenu(false);
+      this.onFontsClick?.();
+    });
+
+    // Top-bar Theme/Colors button
     this.themeBtn?.addEventListener('click', () => {
+      toggleControlMenu(false);
+      this.onThemeClick?.();
+    });
+
+    // In-menu Theme item fallback
+    this.container.querySelector('#btn-menu-theme')?.addEventListener('click', () => {
       toggleControlMenu(false);
       this.onThemeClick?.();
     });
@@ -330,7 +396,8 @@ export class HeaderControls {
   public updateSnapState(): void {
     if (this.snapBtn) {
       const isSnap = this.controller.isSnapEnabled;
-      this.snapBtn.textContent = isSnap ? 'SNAP: ON' : 'SNAP: OFF';
+      const isZh = this.i18n?.isZh() ?? false;
+      this.snapBtn.textContent = isSnap ? (isZh ? '對齊：開啟' : 'SNAP: ON') : (isZh ? '對齊：關閉' : 'SNAP: OFF');
       this.snapBtn.setAttribute('aria-pressed', isSnap.toString());
       this.snapBtn.classList.toggle('active', isSnap);
     }
@@ -339,9 +406,87 @@ export class HeaderControls {
   public updateMotionState(): void {
     if (this.motionBtn) {
       const isReduced = this.controller.isReducedMotion;
-      this.motionBtn.textContent = isReduced ? 'MOTION: REDUCED' : 'MOTION: FLUID';
+      const isZh = this.i18n?.isZh() ?? false;
+      this.motionBtn.textContent = isReduced ? (isZh ? '動態：減弱' : 'MOTION: REDUCED') : (isZh ? '動態：流暢' : 'MOTION: FLUID');
       this.motionBtn.setAttribute('aria-pressed', isReduced.toString());
       this.motionBtn.classList.toggle('active', isReduced);
+    }
+  }
+
+  public updateLanguage(i18n: I18nManager): void {
+    this.i18n = i18n;
+    const isZh = i18n.isZh();
+
+    const langTxt = this.container.querySelector('#hdr-lang-txt');
+    if (langTxt) langTxt.textContent = isZh ? 'EN' : '繁中';
+
+    const fontsLabel = this.container.querySelector('#hdr-fonts-label');
+    if (fontsLabel) fontsLabel.textContent = i18n.t('fontsBtn');
+
+    const themeLabel = this.container.querySelector('#hdr-theme-label');
+    if (themeLabel) themeLabel.textContent = i18n.t('colorsBtn');
+
+    const ctrlLabel = this.container.querySelector('#hdr-control-label');
+    if (ctrlLabel) ctrlLabel.textContent = i18n.t('controlBtn');
+
+    const brandName = this.container.querySelector('#hdr-brand-name');
+    if (brandName) brandName.textContent = i18n.t('brandName');
+
+    const brandSub = this.container.querySelector('#hdr-brand-sub');
+    if (brandSub) brandSub.textContent = i18n.t('brandSub');
+
+    // Menu headers & labels
+    const grpDesign = this.container.querySelector('#menu-grp-design');
+    if (grpDesign) grpDesign.textContent = i18n.t('menuGroupDesign');
+
+    const titleStudio = this.container.querySelector('#menu-title-studio');
+    if (titleStudio) titleStudio.textContent = i18n.t('menuStudioTitle');
+
+    const titleFonts = this.container.querySelector('#menu-title-fonts');
+    if (titleFonts) titleFonts.textContent = i18n.t('menuFontsTitle');
+
+    const titleTheme = this.container.querySelector('#menu-title-theme');
+    if (titleTheme) titleTheme.textContent = i18n.t('menuThemeTitle');
+
+    const grpNav = this.container.querySelector('#menu-grp-nav');
+    if (grpNav) grpNav.textContent = i18n.t('menuGroupNav');
+
+    const grpRec = this.container.querySelector('#menu-grp-rec');
+    if (grpRec) grpRec.textContent = i18n.t('menuGroupRecording');
+
+    const recBtnLabel = this.container.querySelector('#rec-btn-label');
+    if (recBtnLabel) recBtnLabel.textContent = i18n.t('menuRecordTitle');
+
+    const durationLabel = this.container.querySelector('#menu-duration-label');
+    if (durationLabel) durationLabel.textContent = i18n.t('menuSlidePace');
+
+    const titleKeys = this.container.querySelector('#menu-title-keys');
+    if (titleKeys) titleKeys.textContent = i18n.t('menuGroupShortcuts');
+
+    // Shortcuts dialog
+    const keysHeading = this.container.querySelector('#keys-dialog-heading');
+    if (keysHeading) keysHeading.textContent = i18n.t('shortcutsHeading');
+
+    const scNext = this.container.querySelector('#sc-next');
+    if (scNext) scNext.textContent = i18n.t('shortcutNext');
+
+    const scPrev = this.container.querySelector('#sc-prev');
+    if (scPrev) scPrev.textContent = i18n.t('shortcutPrev');
+
+    const scRestart = this.container.querySelector('#sc-restart');
+    if (scRestart) scRestart.textContent = i18n.t('shortcutRestart');
+
+    const scMotion = this.container.querySelector('#sc-motion');
+    if (scMotion) scMotion.textContent = i18n.t('shortcutMotion');
+
+    const scNote = this.container.querySelector('#sc-note');
+    if (scNote) scNote.innerHTML = isZh ? '按 <kbd>Esc</kbd> 鍵即可關閉。' : 'Press <kbd>Esc</kbd> to close.';
+
+    this.updateSnapState();
+    this.updateMotionState();
+    const curSlide = this.controller.slides[this.controller.currentIndex];
+    if (curSlide) {
+      this.update(curSlide, this.controller.currentIndex);
     }
   }
 
@@ -365,9 +510,14 @@ export class HeaderControls {
     this.onStudioClick = cb;
   }
 
+  public setOnLangClick(cb: () => void): void {
+    this.onLangClick = cb;
+  }
+
   public updateStudioState(isActive: boolean): void {
     if (this.studioBtn) {
-      this.studioBtn.textContent = isActive ? 'STUDIO: ON' : 'STUDIO';
+      const isZh = this.i18n?.isZh() ?? false;
+      this.studioBtn.textContent = isActive ? (isZh ? '工坊：開啟' : 'STUDIO: ON') : (isZh ? '工坊' : 'STUDIO');
       this.studioBtn.setAttribute('aria-pressed', isActive.toString());
       this.studioBtn.classList.toggle('active', isActive);
     }

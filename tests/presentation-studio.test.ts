@@ -187,5 +187,93 @@ describe('PresentationStudio Authoring Engine', () => {
     const openModalBtn = document.getElementById('btn-open-theme-modal');
     expect(openModalBtn).not.toBeNull();
   });
+
+  it('should have Triple-Twist Mobius Strip as the default 3D model option', () => {
+    studio.setStudioMode(true);
+    const modelSelect = document.getElementById('sel-model-preset') as HTMLSelectElement;
+    expect(modelSelect).not.toBeNull();
+    const defaultOption = Array.from(modelSelect.options).find(o => o.value === 'default');
+    expect(defaultOption).toBeDefined();
+    expect(defaultOption?.textContent).toContain('Triple-Twist Möbius Strip');
+
+    const badge = document.getElementById('studio-model-badge');
+    expect(badge?.textContent).toBe('Triple-Twist Möbius Strip');
+
+    const armillaryOption = Array.from(modelSelect.options).find(o => o.value === 'armillary');
+    expect(armillaryOption).toBeDefined();
+  });
+
+  it('should provide direct top-bar buttons for Fonts, Colors, and Language', () => {
+    const fontsBtn = headerContainer.querySelector('#btn-hdr-fonts');
+    const colorsBtn = headerContainer.querySelector('#btn-hdr-theme');
+    const langBtn = headerContainer.querySelector('#btn-hdr-lang');
+
+    expect(fontsBtn).not.toBeNull();
+    expect(colorsBtn).not.toBeNull();
+    expect(langBtn).not.toBeNull();
+  });
+
+  it('should support switching between English and Traditional Chinese', async () => {
+    const { I18nManager } = await import('../src/i18n/i18n-manager');
+    const i18n = new I18nManager();
+    expect(i18n.getLanguage()).toBe('en');
+
+    headerControls.updateLanguage(i18n);
+    expect(headerContainer.querySelector('#hdr-fonts-label')?.textContent).toBe('FONTS');
+    expect(headerContainer.querySelector('#hdr-theme-label')?.textContent).toBe('COLORS');
+
+    i18n.setLanguage('zh-TW');
+    headerControls.updateLanguage(i18n);
+    expect(headerContainer.querySelector('#hdr-fonts-label')?.textContent).toBe('字型');
+    expect(headerContainer.querySelector('#hdr-theme-label')?.textContent).toBe('色彩');
+    expect(headerContainer.querySelector('#hdr-brand-name')?.textContent).toBe('動態物件');
+    expect(headerContainer.querySelector('#hdr-lang-txt')?.textContent).toBe('EN');
+  });
+
+  it('should render and sync Slide 4 components in studio drawer', () => {
+    studio.setStudioMode(true);
+    controller.goToSlide(3); // Slide 4 (0-indexed 3)
+    studio.syncInspectorForm(3);
+
+    const compSection = document.getElementById('studio-components-section');
+    expect(compSection).not.toBeNull();
+    expect(compSection?.style.display).toBe('flex');
+
+    const cards = compSection?.querySelectorAll('.comp-edit-card');
+    expect(cards?.length).toBe(3);
+
+    const firstCardName = cards?.[0].querySelector('.comp-inp-name') as HTMLInputElement;
+    expect(firstCardName.value).toBe('Inertial Bezel');
+
+    firstCardName.value = 'Modified Bezel Title';
+    firstCardName.dispatchEvent(new Event('input'));
+
+    const slide4El = viewport.querySelectorAll('.slide')[3];
+    const liveTitle = slide4El.querySelector('.system-part-card[data-tag="A"] .part-name');
+    expect(liveTitle?.textContent).toBe('Modified Bezel Title');
+  });
+
+  it('should render and sync Slide 6 action button labels in studio drawer', () => {
+    studio.setStudioMode(true);
+    controller.goToSlide(5); // Slide 6 (0-indexed 5)
+    studio.syncInspectorForm(5);
+
+    const actSection = document.getElementById('studio-actions-section');
+    expect(actSection).not.toBeNull();
+    expect(actSection?.style.display).toBe('flex');
+
+    const primaryInp = document.getElementById('inp-action-primary') as HTMLInputElement;
+    const secondaryInp = document.getElementById('inp-action-secondary') as HTMLInputElement;
+    expect(primaryInp.value).toBe('Restart Presentation');
+    expect(secondaryInp.value).toBe('Toggle Free Scroll');
+
+    primaryInp.value = 'Start Over';
+    primaryInp.dispatchEvent(new Event('input'));
+
+    const slide6El = viewport.querySelectorAll('.slide')[5];
+    const primaryBtn = slide6El.querySelector('#btn-restart-action');
+    expect(primaryBtn?.textContent).toContain('Start Over');
+  });
 });
+
 

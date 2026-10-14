@@ -1,5 +1,5 @@
 // Zero-dependency glTF 2.0 Binary (.glb) Parser
-import { MeshData } from './geometry';
+import { MeshData, GeometryPalette } from './geometry';
 
 export interface GLBParseResult {
   mesh: MeshData;
@@ -13,7 +13,11 @@ export interface GLBParseResult {
  * Auto-centers geometry, normalizes bounding dimensions, generates normals if absent,
  * and styles with monograph titanium / cadmium accents if vertex colors are not provided.
  */
-export function parseGLB(data: ArrayBuffer, modelName: string = 'Custom Model'): GLBParseResult {
+export function parseGLB(
+  data: ArrayBuffer,
+  modelName: string = 'Custom Model',
+  palette?: GeometryPalette
+): GLBParseResult {
   if (data.byteLength < 12) {
     throw new Error('Invalid GLB file: buffer too short for header (minimum 12 bytes).');
   }
@@ -325,15 +329,22 @@ export function parseGLB(data: ArrayBuffer, modelName: string = 'Custom Model'):
       const col = rawColors[i];
       finalColors.push(col[0], col[1], col[2]);
     } else {
-      // Consistent monograph styling: titanium graphite with cadmium accents
+      // Consistent monograph styling: titanium graphite with palette accents
       const heightRatio = (pos[1] + 1.25) / 2.5;
       const isAccent = Math.abs(pos[0]) > 0.7 && Math.abs(pos[2]) > 0.5;
 
+      const accent = palette?.accentColor ?? [0.88, 0.35, 0.21];
+      const base = palette?.baseColor ?? [0.20, 0.21, 0.25];
+      const highlight = palette?.highlightColor ?? [0.55, 0.58, 0.65];
+
       if (isAccent) {
-        finalColors.push(0.88, 0.35, 0.21); // Warm cadmium accent
+        finalColors.push(accent[0], accent[1], accent[2]);
       } else {
-        const brightness = 0.20 + 0.35 * Math.max(0, Math.min(1, heightRatio));
-        finalColors.push(brightness, brightness * 1.05, brightness * 1.15); // Titanium / chalk
+        const factor = Math.max(0, Math.min(1, heightRatio));
+        const r = base[0] + (highlight[0] - base[0]) * factor;
+        const g = base[1] + (highlight[1] - base[1]) * factor;
+        const b = base[2] + (highlight[2] - base[2]) * factor;
+        finalColors.push(r, g, b);
       }
     }
   }

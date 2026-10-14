@@ -160,7 +160,7 @@
 .record-preview-box {
   width: 100%;
   aspect-ratio: 16 / 9;
-  background: #090a0d;
+  background: var(--bg-primary);
   border: 1px solid var(--hairline);
   margin-bottom: var(--space-4);
   overflow: hidden;

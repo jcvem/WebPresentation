@@ -237,4 +237,22 @@ describe('glTF 2.0 Binary (.glb) Loader', () => {
     view.setUint32(4, 1, true); // Version 1
     expect(() => parseGLB(badVersion, 'bad_ver.glb')).toThrow(/Unsupported glTF version/);
   });
+
+  it('should parse actual triple_twist_mobius_strip.glb file from workspace', async () => {
+    const fs = await import('node:fs');
+    const path = await import('node:path');
+    const glbPath = path.resolve(__dirname, '../triple_twist_mobius_strip.glb');
+    expect(fs.existsSync(glbPath)).toBe(true);
+
+    const fileBuf = fs.readFileSync(glbPath);
+    const arrayBuffer = fileBuf.buffer.slice(fileBuf.byteOffset, fileBuf.byteOffset + fileBuf.byteLength);
+    const result = parseGLB(arrayBuffer, 'triple_twist_mobius_strip.glb');
+
+    expect(result.vertexCount).toBeGreaterThan(0);
+    expect(result.triangleCount).toBeGreaterThan(0);
+    expect(result.mesh.positions.length).toBe(result.vertexCount * 3);
+    expect(result.mesh.normals.length).toBe(result.vertexCount * 3);
+    expect(result.mesh.indices.length).toBe(result.triangleCount * 3);
+  });
 });
+

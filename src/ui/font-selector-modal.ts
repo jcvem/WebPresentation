@@ -8,16 +8,23 @@ import {
   getClosestWeight
 } from '../fonts/font-manager';
 
+import { I18nManager } from '../i18n/i18n-manager';
+
 export class FontSelectorModal {
   private container: HTMLElement;
   private fontManager: FontManager;
+  private i18n?: I18nManager;
   private dialog: HTMLDialogElement | null = null;
 
-  constructor(container: HTMLElement, fontManager: FontManager) {
+  constructor(container: HTMLElement, fontManager: FontManager, i18n?: I18nManager) {
     this.container = container;
     this.fontManager = fontManager;
+    this.i18n = i18n;
     this.render();
     this.bindEvents();
+    if (this.i18n) {
+      this.updateLanguage(this.i18n);
+    }
   }
 
   private render(): void {
@@ -295,11 +302,15 @@ export class FontSelectorModal {
       if (displayWeightTag) {
         displayWeightTag.textContent = WEIGHT_NAMES[displayWeight] || String(displayWeight);
       }
-      if (bodyWeightTag) {
-        bodyWeightTag.textContent = WEIGHT_NAMES[bodyWeight] || String(bodyWeight);
-      }
       if (previewSpecTag) {
         previewSpecTag.textContent = `${displayFont || 'Display'} (${displayWeight}) + ${bodyFont || 'Body'} (${bodyWeight})`;
+      }
+
+      if (displayFont) {
+        this.fontManager.ensureGoogleFontLoaded(displayFont, displayWeight);
+      }
+      if (bodyFont) {
+        this.fontManager.ensureGoogleFontLoaded(bodyFont, bodyWeight);
       }
     };
 
@@ -450,6 +461,7 @@ export class FontSelectorModal {
 
   public open(): void {
     if (this.dialog && typeof this.dialog.showModal === 'function') {
+      this.fontManager.preloadCuratedFonts();
       this.updateCustomInputsFromManager();
       this.dialog.showModal();
     }
@@ -459,6 +471,35 @@ export class FontSelectorModal {
     if (this.dialog && typeof this.dialog.close === 'function') {
       this.dialog.close();
     }
+  }
+
+  public updateLanguage(i18n: I18nManager): void {
+    this.i18n = i18n;
+    if (!this.dialog) return;
+
+    const badge = this.dialog.querySelector('.font-dialog-badge');
+    if (badge) badge.textContent = i18n.t('fontModalBadge');
+
+    const heading = this.dialog.querySelector('.font-dialog-heading');
+    if (heading) heading.textContent = i18n.t('fontModalHeading');
+
+    const sub = this.dialog.querySelector('.font-dialog-sub');
+    if (sub) sub.textContent = i18n.t('fontModalSub');
+
+    const tabCurated = this.dialog.querySelector('#tab-curated');
+    if (tabCurated) tabCurated.textContent = i18n.t('tabCuratedPairings');
+
+    const tabCustom = this.dialog.querySelector('#tab-custom');
+    if (tabCustom) tabCustom.textContent = i18n.t('tabCustomFonts');
+
+    const applyBtn = this.dialog.querySelector('#btn-apply-custom-fonts');
+    if (applyBtn) applyBtn.textContent = i18n.t('btnApplyTypography');
+
+    const resetBtn = this.dialog.querySelector('#btn-font-reset');
+    if (resetBtn) resetBtn.textContent = i18n.t('btnResetTypography');
+
+    const closeBtn = this.dialog.querySelector('#btn-font-done');
+    if (closeBtn) closeBtn.textContent = i18n.isZh() ? '完成關閉' : 'CLOSE';
   }
 
   private showToast(message: string): void {
